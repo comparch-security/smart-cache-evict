@@ -8,6 +8,7 @@ TARGETS = \
 
 OBJECTS = \
 	cache/cache.o \
+	common/definitions.o \
 	util/random.o \
 	util/statistics.o \
 
