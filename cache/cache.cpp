@@ -1,4 +1,5 @@
 #include "cache/cache.hpp"
+#include "util/assembly.hpp"
 #include "util/statistics.hpp"
 
 #include <iomanip>
@@ -16,28 +17,28 @@ int calibrate(char *victim) {
   maccess (victim);
   maccess (victim);
 
-  for (int i=0; i < repeat; i++) {
+  for (int i=0; i<repeat; i++) {
     maccess (victim);
     maccess (victim);
     maccess (victim);
     maccess (victim);
 
-    uint64_t time = clock_thread();
+    uint64_t time = rdtscfence();
     maccess (victim);
-    uint64_t delta = clock_thread() - time;
+    uint64_t delta = rdtscfence() - time;
     record_histo_stat(stat_histo_unflushed, (double)(delta));
   }
 
-  for (i=0; i < repeat; i++) {
+  for (int i=0; i<repeat; i++) {
     maccess (victim);
     maccess (victim);
     maccess (victim);
     maccess (victim);
 
     flush (victim);
-    uint64_t time = clock_thread();
+    uint64_t time = rdtscfence();
     maccess (victim);
-    uint64_t delta = clock_thread() - time;
+    uint64_t delta = rdtscfence() - time;
     record_histo_stat(stat_histo_flushed, (double)(delta));
   }
 

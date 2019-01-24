@@ -12,6 +12,6 @@ typedef struct elem {
 } elem_t;
 
 // get the latency threshold
-int calibrate(char *victim); 
+extern int calibrate(char *victim);
 
 #endif
