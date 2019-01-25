@@ -4,6 +4,6 @@
 #include <cstdint>
 
 extern void init_seed(uint64_t seed);
-extern uint64_t random();
+extern uint64_t random_fast();
 
 #endif

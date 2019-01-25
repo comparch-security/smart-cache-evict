@@ -3,8 +3,11 @@
 #include "common/definitions.hpp"
 #include "cache/cache.hpp"
 #include "util/assembly.hpp"
+#include "util/random.hpp"
 
 #include <cassert>
+#include <cstdlib>
+#include <set>
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
   #include "util/statistics.hpp"
@@ -105,7 +108,7 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
   return (latency / CFG.trials) > (double)CFG.threshold;
 }
 
-int test_and_time(elem_t *ptr) {
+bool test_arb(elem_t *ptr) {
   int count = 0;
   for(int i=0; i<CFG.trials; i++) {
 	for(int j=0; j<CFG.scans; j++)
@@ -164,4 +167,54 @@ traverse_func choose_traverse_func(int t) {
   case 3:  return traverse_list_3;
   default: return traverse_list_4;
   }
+}
+
+elem_t *init_list(uint32_t ltsz, uint32_t emsz) {
+  elem_t *ptr = (elem_t *)malloc(emsz);
+  elem_t *rv = ptr;
+  ptr->prev = NULL;
+  for(uint32_t i=1; i<ltsz; i++) {
+    ptr->next = (elem_t *)malloc(emsz);
+    ptr->next->prev = ptr;
+    ptr = ptr->next;
+  }
+  ptr->next = NULL;
+  return rv;
+}
+
+uint32_t list_size(elem_t *ptr) {
+  int32_t rv = 0;
+  while(ptr) {
+    rv++;
+    ptr = ptr->next;
+  }
+}
+
+elem_t *pick_from_list(elem_t **pptr, uint32_t ltsz, uint32_t pksz) {
+  std::set<uint32_t> pick_set;
+  while(pick_set.size() < pksz) {
+    pick_set.insert(random_fast() % ltsz);
+  }
+
+  uint32_t index = 0;
+  elem_t *rv, *pick = NULL, *ptr = *pptr;
+  while(ptr) {
+    if(pick_set.count(index)) {
+      elem_t *p = ptr;
+      ptr = ptr->next;
+
+      if(p->prev != NULL) p->prev->next = p->next; else *pptr = p->next;
+      if(p->next != NULL) p->next->prev = p->prev;
+
+      if(pick == NULL) rv = p;
+      else             pick->next = p;
+      p->prev = pick;
+      p->next = NULL;
+      pick = p;
+    } else {
+      ptr = ptr->next;
+    }
+    index++;
+  }
+  return rv;
 }
