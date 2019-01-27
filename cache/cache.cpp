@@ -9,15 +9,18 @@
 #include <cstdlib>
 #include <set>
 
+#include <cstdio>
+
 #ifdef SCE_CACHE_CALIBRATE_HISTO
   #include "util/statistics.hpp"
   #include <iomanip>
   #include <fstream>
 #endif
 
-void calibrate(elem_t *victim) {
-  double unflushed = 0.0;
-  double flushed = 0.0;
+void calibrate() {
+  elem_t *victim = (elem_t *)malloc(sizeof(elem_t));
+  float unflushed = 0.0;
+  float flushed = 0.0;
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
   uint32_t stat_histo_unflushed = init_histo_stat(20, CFG.calibrate_repeat);
@@ -41,7 +44,7 @@ void calibrate(elem_t *victim) {
     unflushed += delta;
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
-    record_histo_stat(stat_histo_unflushed, (double)(delta));
+    record_histo_stat(stat_histo_unflushed, (float)(delta));
 #endif
   }
   unflushed /= CFG.calibrate_repeat;
@@ -59,10 +62,12 @@ void calibrate(elem_t *victim) {
     flushed += delta;
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
-    record_histo_stat(stat_histo_flushed, (double)(delta));
+    record_histo_stat(stat_histo_flushed, (float)(delta));
 #endif
   }
   flushed /= CFG.calibrate_repeat;
+
+  free(victim);
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
   {
@@ -87,7 +92,7 @@ void calibrate(elem_t *victim) {
 }
 
 bool test_tar(elem_t *ptr, elem_t *victim) {
-  double latency = 0.0;
+  float latency = 0.0;
   for(int i=0; i<CFG.trials; i++) {
 	maccess (victim);
 	maccess (victim);
@@ -99,13 +104,12 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
 
 	// page walk
     maccess (victim + 8);
-    maccess (victim - 8);
 
 	uint64_t time = rdtscfence();
 	maccess (victim);
-	latency += (double)(rdtscfence() - time);
+	latency += (float)(rdtscfence() - time);
   }
-  return (latency / CFG.trials) > (double)CFG.threshold;
+  return (latency / CFG.trials) > (float)CFG.threshold;
 }
 
 bool test_arb(elem_t *ptr) {
@@ -182,12 +186,21 @@ elem_t *init_list(uint32_t ltsz, uint32_t emsz) {
   return rv;
 }
 
+void free_list(elem_t *ptr) {
+  while(ptr) {
+    elem_t *next = ptr->next;
+    free(ptr);
+    ptr = next;
+  }
+}
+
 uint32_t list_size(elem_t *ptr) {
   int32_t rv = 0;
   while(ptr) {
     rv++;
     ptr = ptr->next;
   }
+  return rv;
 }
 
 elem_t *pick_from_list(elem_t **pptr, uint32_t ltsz, uint32_t pksz) {
@@ -217,4 +230,24 @@ elem_t *pick_from_list(elem_t **pptr, uint32_t ltsz, uint32_t pksz) {
     index++;
   }
   return rv;
+}
+
+elem_t *append_list(elem_t *lptr, elem_t *rptr) {
+  if(lptr == NULL) return rptr;
+  elem_t *rv = lptr;
+  while(lptr->next != NULL) lptr = lptr->next;
+  lptr->next = rptr;
+  if(rptr != NULL) rptr->prev = lptr;
+  return rv;
+}
+
+float evict_rate(uint32_t ltsz, uint32_t trial) {
+  float rate = 0.0;
+  for(int i=0; i<trial; i++) {
+    elem_t *ev_list = pick_from_list(&CFG.pool, CFG.pool_size, ltsz);
+    bool res = test_tar(ev_list->next, ev_list);
+    if(res) rate += 1.0;
+    CFG.pool = append_list(CFG.pool, ev_list);
+  }
+  return rate / trial;
 }

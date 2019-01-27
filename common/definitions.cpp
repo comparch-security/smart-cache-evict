@@ -1,12 +1,12 @@
 #include "common/definitions.hpp"
 #include "cache/cache.hpp"
 #include "database/json.hpp"
-
 #include <fstream>
 
 struct config CFG;
 using json = nlohmann::json;
 static json db;
+static bool db_init = false;
 
 #define CFG_SET_ENTRY(name, var, dvalue) \
   if(db.count(name)) var = db[name];     \
@@ -15,11 +15,13 @@ static json db;
     db[name] = dvalue;                   \
   }                                      \
 
-bool init_cfg() {
-  std::ifstream db_file("configure.json");
-  if(!db_file.fail()) {
-    db_file >> db;
-    db_file.close();
+void init_cfg() {
+  if(!db_init) {
+    std::ifstream db_file("configure.json");
+    if(!db_file.fail()) {
+      db_file >> db;
+      db_file.close();
+    }
   }
 
   CFG_SET_ENTRY("candidate_size",   CFG.candidate_size,   0               )
@@ -36,6 +38,8 @@ bool init_cfg() {
   CFG_SET_ENTRY("findallcolors",    CFG.findallcolors,    false           )
   CFG_SET_ENTRY("findallcongruent", CFG.findallcongruent, false           )
   CFG_SET_ENTRY("verify",           CFG.verify,           true            )
+  CFG_SET_ENTRY("pool_size",        CFG.pool_size,        (1<<20)         )
+  CFG_SET_ENTRY("elem_size",        CFG.elem_size,        ESZ_CL          )
 
   if(db.count("traverse")) {
     int t = db["traverse"];
@@ -44,9 +48,12 @@ bool init_cfg() {
     CFG.traverse = traverse_list_4;
     db["traverse"] = 4;
   }
-}
 
-static bool db_init = init_cfg();
+  if(!db_init) free_list(CFG.pool);
+  CFG.pool = init_list(CFG.pool_size, CFG.elem_size);
+
+  db_init = true;
+}
 
 void dump_cfg() {
   std::ofstream db_file("configure.json");
@@ -55,5 +62,3 @@ void dump_cfg() {
     db_file.close();
   }
 }
-
-
