@@ -17,6 +17,7 @@ inline uint64_t rdtscfence() {
 
 inline void maccess(void* p) {
   __asm__ volatile ("movq (%0), %%rax\n" : : "c" (p) : "rax");
+  __asm__ volatile ("lfence");
 }
 
 #endif

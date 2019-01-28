@@ -23,7 +23,7 @@ void calibrate(elem_t *victim) {
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
   uint32_t stat_histo_unflushed = init_histo_stat(20, CFG.calibrate_repeat);
-  uint32_t stat_histo_flushed = init_histo_stat(20, CFG.calibrate_repeat);
+  uint32_t stat_histo_flushed = init_histo_stat(40, CFG.calibrate_repeat);
 #endif
   
   maccess (victim);
@@ -70,6 +70,7 @@ void calibrate(elem_t *victim) {
   {
     std::ofstream outfile("unflushed.data", std::ofstream::app);
     auto hist = get_histo_density(stat_histo_unflushed);
+    outfile << "=================" << std::endl;
     for(uint32_t i=0; i<hist.size(); i++)
       outfile << hist[i].first << "\t0\t0\t" << hist[i].second << "\t0" << std::endl;
     outfile.close();
@@ -78,6 +79,7 @@ void calibrate(elem_t *victim) {
   {
     std::ofstream outfile("flushed.data", std::ofstream::app);
     auto hist = get_histo_density(stat_histo_flushed);
+    outfile << "=================" << std::endl;
     for(uint32_t i=0; i<hist.size(); i++)
       outfile << hist[i].first << "\t0\t0\t" << hist[i].second << "\t0" << std::endl;
     outfile.close();
@@ -85,12 +87,23 @@ void calibrate(elem_t *victim) {
 #endif
 
   assert(flushed > unflushed);
-  CFG.threshold = (int)((flushed + 2 * unflushed) / 2.0);
+  CFG.flush_low = (int)((flushed + 1.5*unflushed) / 2);
+  CFG.flush_high  = (int)(flushed * 5.0);
+
+#ifdef SCE_CACHE_CALIBRATE_HISTO
+  {
+    std::ofstream outfile("flushed.data", std::ofstream::app);
+    outfile << "[" << CFG.flush_low <<"," << CFG.flush_high << "]" << std::endl;
+    outfile.close();
+  }
+#endif
+
 }
 
 bool test_tar(elem_t *ptr, elem_t *victim) {
   float latency = 0.0;
-  for(int i=0; i<CFG.trials; i++) {
+  int i=0, t=0;
+  while(i<CFG.trials && t<CFG.trials*8) {
 	maccess (victim);
 	maccess (victim);
 	maccess (victim);
@@ -99,14 +112,27 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
 	for(int j=0; j<CFG.scans; j++)
       CFG.traverse(ptr);
 
-	// page walk
-    maccess (victim + 8);
+    if((char *)victim > CFG.pool_root + 2*CFG.elem_size)
+      maccess((char *)victim - 2*CFG.elem_size );
 
-	uint64_t time = rdtscfence();
+    if((char *)victim < CFG.pool_roof - 2*CFG.elem_size)
+      maccess((char *)victim + 2*CFG.elem_size);
+
+	uint64_t delay = rdtscfence();
 	maccess (victim);
-	latency += (float)(rdtscfence() - time);
+	delay = rdtscfence() - delay;
+    if(delay < CFG.flush_high) {
+      latency += (float)(delay);
+      i++;
+    }
+    t++;
   }
-  return (latency / CFG.trials) > (float)CFG.threshold;
+  if(i!=0) {
+    latency /= i;
+    return latency > (float)CFG.flush_low;
+  } else {
+    return false;
+  }
 }
 
 bool test_arb(elem_t *ptr) {
@@ -119,7 +145,7 @@ bool test_arb(elem_t *ptr) {
     while(p) {
       uint64_t time = rdtscfence();
       maccess(p);
-      if(rdtscfence() - time > CFG.threshold)
+      if(rdtscfence() - time > CFG.flush_low)
         count++;
       p = p->next;
     }
@@ -167,27 +193,6 @@ traverse_func choose_traverse_func(int t) {
   case 2:  return traverse_list_2;
   case 3:  return traverse_list_3;
   default: return traverse_list_4;
-  }
-}
-
-elem_t *init_list(uint32_t ltsz, uint32_t emsz) {
-  elem_t *ptr = (elem_t *)malloc(emsz);
-  elem_t *rv = ptr;
-  ptr->prev = NULL;
-  for(uint32_t i=1; i<ltsz; i++) {
-    ptr->next = (elem_t *)malloc(emsz);
-    ptr->next->prev = ptr;
-    ptr = ptr->next;
-  }
-  ptr->next = NULL;
-  return rv;
-}
-
-void free_list(elem_t *ptr) {
-  while(ptr) {
-    elem_t *next = ptr->next;
-    free(ptr);
-    ptr = next;
   }
 }
 

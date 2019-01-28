@@ -4,8 +4,7 @@
 #include <cstdint>
 
 #define SZ_CL  64
-#define ESZ_CL 56
-#define ESZ_PG 4088
+#define SZ_PG  4096
 
 typedef struct elem {
   struct elem *next;
@@ -24,8 +23,6 @@ extern void traverse_list_4(elem_t *ptr);
 typedef void (*traverse_func)(elem_t *);
 extern traverse_func choose_traverse_func(int);
 
-extern elem_t *init_list(uint32_t ltsz, uint32_t emsz);
-extern void free_list(elem_t *ptr);
 extern uint32_t list_size(elem_t *ptr);
 extern elem_t *pick_from_list(elem_t **ptr, uint32_t ltsz, uint32_t pksz);
 extern elem_t *append_list(elem_t *lptr, elem_t *rptr);

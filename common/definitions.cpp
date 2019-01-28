@@ -28,9 +28,10 @@ void init_cfg() {
   CFG_SET_ENTRY("cache_size",       CFG.cache_size,       0               )
   CFG_SET_ENTRY("cache_way",        CFG.cache_way,        0               )
   CFG_SET_ENTRY("cache_slices",     CFG.cache_slices,     0               )
-  CFG_SET_ENTRY("threshold",        CFG.threshold,        0               )
-  CFG_SET_ENTRY("trials",           CFG.trials,           4               )
-  CFG_SET_ENTRY("scans",            CFG.scans,            4               )
+  CFG_SET_ENTRY("flush_low",        CFG.flush_low,        0               )
+  CFG_SET_ENTRY("flush_high",       CFG.flush_high,       0               )
+  CFG_SET_ENTRY("trials",           CFG.trials,           8               )
+  CFG_SET_ENTRY("scans",            CFG.scans,            2               )
   CFG_SET_ENTRY("calibrate_repeat", CFG.calibrate_repeat, 1000            )
   CFG_SET_ENTRY("retry",            CFG.retry,            true            )
   CFG_SET_ENTRY("backtracking",     CFG.backtracking,     true            )
@@ -38,8 +39,8 @@ void init_cfg() {
   CFG_SET_ENTRY("findallcolors",    CFG.findallcolors,    false           )
   CFG_SET_ENTRY("findallcongruent", CFG.findallcongruent, false           )
   CFG_SET_ENTRY("verify",           CFG.verify,           true            )
-  CFG_SET_ENTRY("pool_size",        CFG.pool_size,        (1<<20)         )
-  CFG_SET_ENTRY("elem_size",        CFG.elem_size,        ESZ_CL          )
+  CFG_SET_ENTRY("pool_size",        CFG.pool_size,        (1<<22)         )
+  CFG_SET_ENTRY("elem_size",        CFG.elem_size,        SZ_CL           )
 
   if(db.count("traverse")) {
     int t = db["traverse"];
@@ -49,8 +50,19 @@ void init_cfg() {
     db["traverse"] = 4;
   }
 
-  if(!db_init) free_list(CFG.pool);
-  CFG.pool = init_list(CFG.pool_size, CFG.elem_size);
+  if(!db_init) free(CFG.pool_root);
+  CFG.pool_root = (char *)malloc(CFG.pool_size * CFG.elem_size);
+  CFG.pool_roof = CFG.pool_root + CFG.pool_size * CFG.elem_size;
+  CFG.pool = (elem_t *)CFG.pool_root;
+  elem_t *ptr = CFG.pool;
+  elem_t *rv = ptr;
+  ptr->prev = NULL;
+  for(uint32_t i=1; i<CFG.pool_size; i++) {
+    ptr->next = (elem_t *)((char *)ptr + CFG.elem_size);
+    ptr->next->prev = ptr;
+    ptr = ptr->next;
+  }
+  ptr->next = NULL;  
 
   db_init = true;
 }
