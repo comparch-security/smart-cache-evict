@@ -17,8 +17,7 @@
   #include <fstream>
 #endif
 
-void calibrate() {
-  elem_t *victim = (elem_t *)malloc(sizeof(elem_t));
+void calibrate(elem_t *victim) {
   float unflushed = 0.0;
   float flushed = 0.0;
 
@@ -66,8 +65,6 @@ void calibrate() {
 #endif
   }
   flushed /= CFG.calibrate_repeat;
-
-  free(victim);
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
   {
@@ -245,6 +242,7 @@ float evict_rate(uint32_t ltsz, uint32_t trial) {
   float rate = 0.0;
   for(int i=0; i<trial; i++) {
     elem_t *ev_list = pick_from_list(&CFG.pool, CFG.pool_size, ltsz);
+    calibrate(ev_list);
     bool res = test_tar(ev_list->next, ev_list);
     if(res) rate += 1.0;
     CFG.pool = append_list(CFG.pool, ev_list);

@@ -31,7 +31,7 @@ void init_cfg() {
   CFG_SET_ENTRY("threshold",        CFG.threshold,        0               )
   CFG_SET_ENTRY("trials",           CFG.trials,           4               )
   CFG_SET_ENTRY("scans",            CFG.scans,            4               )
-  CFG_SET_ENTRY("calibrate_repeat", CFG.calibrate_repeat, 20000           )
+  CFG_SET_ENTRY("calibrate_repeat", CFG.calibrate_repeat, 1000            )
   CFG_SET_ENTRY("retry",            CFG.retry,            true            )
   CFG_SET_ENTRY("backtracking",     CFG.backtracking,     true            )
   CFG_SET_ENTRY("ignoreslice",      CFG.ignoreslice,      true            )
