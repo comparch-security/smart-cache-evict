@@ -1,7 +1,13 @@
 #ifndef SCE_DEFINITIONS_HPP
 #define SCE_DEFINITIONS_HPP
 
-struct elem;
+#define SZ_CL  64
+#define SZ_PG  4096
+
+typedef struct elem {
+  struct elem *next;
+  struct elem *prev;
+} elem_t;
 
 struct config {
   int candidate_size;               // number of candidate cache lines
@@ -14,12 +20,14 @@ struct config {
   int scans;                        // number of scans for each trial
   int calibrate_repeat;             // repeat in the calibration process
   bool retry;
-  bool backtracking;
+  int rtlimit;                      // limit of retry for a constant size
+  bool rollback;
+  int rblimit;                      // depth of rollbacks
   bool ignoreslice;
   bool findallcolors;
   bool findallcongruent;
   bool verify;
-  void (*traverse)(struct elem*);   // list traver function
+  void (*traverse)(elem_t *);       // list traver function
   int pool_size;                    // the size of the element pool
   int elem_size;                    // size of an element
   char *pool_root;                  // base memory address of the pool

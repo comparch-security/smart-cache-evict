@@ -1,15 +1,7 @@
 #ifndef SCE_CACHE_HPP
 #define SCE_CACHE_HPP
 
-#include <cstdint>
-
-#define SZ_CL  64
-#define SZ_PG  4096
-
-typedef struct elem {
-  struct elem *next;
-  struct elem *prev;
-} elem_t;
+#include "common/definitions.hpp"
 
 extern void calibrate(elem_t *ptr);
 
@@ -23,9 +15,9 @@ extern void traverse_list_4(elem_t *ptr);
 typedef void (*traverse_func)(elem_t *);
 extern traverse_func choose_traverse_func(int);
 
-extern uint32_t list_size(elem_t *ptr);
-extern elem_t *pick_from_list(elem_t **ptr, uint32_t ltsz, uint32_t pksz);
+extern int list_size(elem_t *ptr);
+extern elem_t *pick_from_list(elem_t **ptr, int ltsz, int pksz);
 extern elem_t *append_list(elem_t *lptr, elem_t *rptr);
-extern float evict_rate(uint32_t ltsz,uint32_t trial);
+extern float evict_rate(int ltsz, int trial);
 
 #endif

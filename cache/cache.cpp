@@ -1,12 +1,12 @@
 // #define SCE_CACHE_CALIBRATE_HISTO
 
-#include "common/definitions.hpp"
 #include "cache/cache.hpp"
 #include "util/assembly.hpp"
 #include "util/random.hpp"
 
 #include <cassert>
 #include <cstdlib>
+#include <cstdint>
 #include <set>
 
 #include <cstdio>
@@ -71,7 +71,7 @@ void calibrate(elem_t *victim) {
     std::ofstream outfile("unflushed.data", std::ofstream::app);
     auto hist = get_histo_density(stat_histo_unflushed);
     outfile << "=================" << std::endl;
-    for(uint32_t i=0; i<hist.size(); i++)
+    for(int i=0; i<hist.size(); i++)
       outfile << hist[i].first << "\t0\t0\t" << hist[i].second << "\t0" << std::endl;
     outfile.close();
   }
@@ -80,7 +80,7 @@ void calibrate(elem_t *victim) {
     std::ofstream outfile("flushed.data", std::ofstream::app);
     auto hist = get_histo_density(stat_histo_flushed);
     outfile << "=================" << std::endl;
-    for(uint32_t i=0; i<hist.size(); i++)
+    for(int i=0; i<hist.size(); i++)
       outfile << hist[i].first << "\t0\t0\t" << hist[i].second << "\t0" << std::endl;
     outfile.close();
   }
@@ -196,8 +196,8 @@ traverse_func choose_traverse_func(int t) {
   }
 }
 
-uint32_t list_size(elem_t *ptr) {
-  int32_t rv = 0;
+int list_size(elem_t *ptr) {
+  int rv = 0;
   while(ptr) {
     rv++;
     ptr = ptr->next;
@@ -205,13 +205,13 @@ uint32_t list_size(elem_t *ptr) {
   return rv;
 }
 
-elem_t *pick_from_list(elem_t **pptr, uint32_t ltsz, uint32_t pksz) {
-  std::set<uint32_t> pick_set;
+elem_t *pick_from_list(elem_t **pptr, int ltsz, int pksz) {
+  std::set<int> pick_set;
   while(pick_set.size() < pksz) {
     pick_set.insert(random_fast() % ltsz);
   }
 
-  uint32_t index = 0;
+  int index = 0;
   elem_t *rv, *pick = NULL, *ptr = *pptr;
   while(ptr) {
     if(pick_set.count(index)) {
@@ -243,7 +243,7 @@ elem_t *append_list(elem_t *lptr, elem_t *rptr) {
   return rv;
 }
 
-float evict_rate(uint32_t ltsz, uint32_t trial) {
+float evict_rate(int ltsz, int trial) {
   float rate = 0.0;
   for(int i=0; i<trial; i++) {
     elem_t *ev_list = pick_from_list(&CFG.pool, CFG.pool_size, ltsz);
