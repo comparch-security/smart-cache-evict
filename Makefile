@@ -4,7 +4,7 @@ CXX = g++
 CXXFLAGS = --std=c++11 -O2 -g -I.
 
 TARGETS = \
-	run/test
+	run/test-evict-ratio
 
 OBJECTS = \
 	cache/cache.o \
