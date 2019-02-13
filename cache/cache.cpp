@@ -1,4 +1,3 @@
-// #define SCE_CACHE_CALIBRATE_HISTO
 
 #include "cache/cache.hpp"
 #include "util/assembly.hpp"
@@ -10,6 +9,8 @@
 #include <set>
 
 #include <cstdio>
+
+// #define SCE_CACHE_CALIBRATE_HISTO
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
   #include "util/statistics.hpp"
@@ -103,7 +104,8 @@ void calibrate(elem_t *victim) {
 bool test_tar(elem_t *ptr, elem_t *victim) {
   float latency = 0.0;
   int i=0, t=0;
-  while(i<CFG.trials && t<CFG.trials*8) {
+
+  while(i<CFG.trials && t<CFG.trials*64) {
 	maccess (victim);
 	maccess (victim);
 	maccess (victim);
@@ -127,7 +129,8 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
     }
     t++;
   }
-  if(i!=0) {
+
+  if(i == CFG.trials) {
     latency /= i;
     return latency > (float)CFG.flush_low;
   } else {
@@ -246,11 +249,11 @@ elem_t *append_list(elem_t *lptr, elem_t *rptr) {
 float evict_rate(int ltsz, int trial) {
   float rate = 0.0;
   for(int i=0; i<trial; i++) {
-    elem_t *ev_list = pick_from_list(&CFG.pool, CFG.pool_size, ltsz);
+    elem_t *ev_list = allocate_list(ltsz);
     calibrate(ev_list);
     bool res = test_tar(ev_list->next, ev_list);
     if(res) rate += 1.0;
-    CFG.pool = append_list(CFG.pool, ev_list);
+    free_list(ev_list);
   }
   return rate / trial;
 }

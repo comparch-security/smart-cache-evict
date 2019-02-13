@@ -31,12 +31,12 @@ void init_cfg() {
   CFG_SET_ENTRY("flush_low",        CFG.flush_low,        0               )
   CFG_SET_ENTRY("flush_high",       CFG.flush_high,       0               )
   CFG_SET_ENTRY("trials",           CFG.trials,           8               )
-  CFG_SET_ENTRY("scans",            CFG.scans,            2               )
+  CFG_SET_ENTRY("scans",            CFG.scans,            4               )
   CFG_SET_ENTRY("calibrate_repeat", CFG.calibrate_repeat, 1000            )
   CFG_SET_ENTRY("retry",            CFG.retry,            true            )
-  CFG_SET_ENTRY("rtlimit",          CFG.rtlimit,          500             )
+  CFG_SET_ENTRY("rtlimit",          CFG.rtlimit,          200             )
   CFG_SET_ENTRY("rollback",         CFG.rollback,         true            )
-  CFG_SET_ENTRY("rblimit",          CFG.rblimit,          8               )
+  CFG_SET_ENTRY("rblimit",          CFG.rblimit,          16              )
   CFG_SET_ENTRY("ignoreslice",      CFG.ignoreslice,      true            )
   CFG_SET_ENTRY("findallcolors",    CFG.findallcolors,    false           )
   CFG_SET_ENTRY("findallcongruent", CFG.findallcongruent, false           )
@@ -75,4 +75,16 @@ void dump_cfg() {
     db_file << db.dump(4);
     db_file.close();
   }
+}
+
+elem_t *allocate_list(int ltsz) {
+  elem_t *rv = pick_from_list(&CFG.pool, CFG.pool_size, ltsz);
+  CFG.pool_size -= ltsz;
+  return rv;
+}
+
+void free_list(elem_t *l) {
+  int ltsz = list_size(l);
+  CFG.pool = append_list(CFG.pool, l);
+  CFG.pool_size += ltsz;
 }

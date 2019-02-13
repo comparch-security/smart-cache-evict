@@ -38,4 +38,7 @@ struct config {
 extern struct config CFG;
 extern void init_cfg();
 extern void dump_cfg();
+
+extern elem_t *allocate_list(int ltsz);
+extern void free_list(elem_t *l);
 #endif

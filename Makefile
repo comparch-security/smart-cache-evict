@@ -4,10 +4,12 @@ CXX = g++
 CXXFLAGS = --std=c++11 -O2 -g -I.
 
 TARGETS = \
-	run/test-evict-ratio
+	run/test-evict-ratio \
+	run/test-evict \
 
 OBJECTS = \
 	cache/cache.o \
+	cache/algorithm.o \
 	common/definitions.o \
 	util/random.o \
 	util/statistics.o \
