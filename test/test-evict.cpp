@@ -6,7 +6,8 @@
 int main() {
   init_cfg();
   randomize_seed();
-  for (int i=0; i<10; i++) {
+  int way = 32;
+  for (int i=0; i<20; i++) {
     elem_t *candidate = allocate_list(90000);
     elem_t *victim = allocate_list(1);
     calibrate(victim);
@@ -18,7 +19,7 @@ int main() {
       calibrate(victim);
     }
     printf("just test: %d\n", test_tar(candidate, victim));
-    bool rv = trim_tar(&candidate, victim);
+    bool rv = trim_tar(&candidate, victim, way);
     printf("%d: %d\n", rv, list_size(candidate));
     free_list(candidate);
     free_list(victim);

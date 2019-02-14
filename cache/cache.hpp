@@ -12,6 +12,7 @@ extern void traverse_list_1(elem_t *ptr);
 extern void traverse_list_2(elem_t *ptr);
 extern void traverse_list_3(elem_t *ptr);
 extern void traverse_list_4(elem_t *ptr);
+extern void traverse_list_rr(elem_t *ptr);
 typedef void (*traverse_func)(elem_t *);
 extern traverse_func choose_traverse_func(int);
 

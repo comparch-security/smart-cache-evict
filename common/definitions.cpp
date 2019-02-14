@@ -30,11 +30,11 @@ void init_cfg() {
   CFG_SET_ENTRY("cache_slices",     CFG.cache_slices,     0               )
   CFG_SET_ENTRY("flush_low",        CFG.flush_low,        0               )
   CFG_SET_ENTRY("flush_high",       CFG.flush_high,       0               )
-  CFG_SET_ENTRY("trials",           CFG.trials,           8               )
-  CFG_SET_ENTRY("scans",            CFG.scans,            4               )
+  CFG_SET_ENTRY("trials",           CFG.trials,           4               )
+  CFG_SET_ENTRY("scans",            CFG.scans,            2               )
   CFG_SET_ENTRY("calibrate_repeat", CFG.calibrate_repeat, 1000            )
   CFG_SET_ENTRY("retry",            CFG.retry,            true            )
-  CFG_SET_ENTRY("rtlimit",          CFG.rtlimit,          200             )
+  CFG_SET_ENTRY("rtlimit",          CFG.rtlimit,          32              )
   CFG_SET_ENTRY("rollback",         CFG.rollback,         true            )
   CFG_SET_ENTRY("rblimit",          CFG.rblimit,          16              )
   CFG_SET_ENTRY("ignoreslice",      CFG.ignoreslice,      true            )
@@ -48,7 +48,7 @@ void init_cfg() {
     int t = db["traverse"];
     CFG.traverse = choose_traverse_func(t);
   } else {
-    CFG.traverse = traverse_list_4;
+    CFG.traverse = traverse_list_rr;
     db["traverse"] = 4;
   }
 

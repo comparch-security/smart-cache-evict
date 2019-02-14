@@ -30,7 +30,7 @@ void calibrate(elem_t *victim) {
   maccess (victim);
   maccess (victim);
   maccess (victim);
-  maccess (victim);
+  maccess_fence (victim);
 
   for (int i=0; i<CFG.calibrate_repeat; i++) {
     maccess (victim);
@@ -39,7 +39,7 @@ void calibrate(elem_t *victim) {
     maccess (victim);
 
     uint64_t time = rdtscfence();
-    maccess (victim);
+    maccess_fence (victim);
     uint64_t delta = rdtscfence() - time;
     unflushed += delta;
 
@@ -53,11 +53,11 @@ void calibrate(elem_t *victim) {
     maccess (victim);
     maccess (victim);
     maccess (victim);
-    maccess (victim);
+    maccess_fence (victim);
 
     flush (victim);
     uint64_t time = rdtscfence();
-    maccess (victim);
+    maccess_fence (victim);
     uint64_t delta = rdtscfence() - time;
     flushed += delta;
 
@@ -88,8 +88,9 @@ void calibrate(elem_t *victim) {
 #endif
 
   assert(flushed > unflushed);
-  CFG.flush_low = (int)((flushed + 1.5*unflushed) / 2);
-  CFG.flush_high  = (int)(flushed * 5.0);
+  CFG.flush_low = (int)((1.0*flushed + 2.0*unflushed) / 3);
+  CFG.flush_high  = (int)(flushed * 2.0);
+  printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
   {
@@ -105,7 +106,7 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
   float latency = 0.0;
   int i=0, t=0;
 
-  while(i<CFG.trials && t<CFG.trials*64) {
+  while(i<CFG.trials && t<CFG.trials*16) {
 	maccess (victim);
 	maccess (victim);
 	maccess (victim);
@@ -115,13 +116,13 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
       CFG.traverse(ptr);
 
     if((char *)victim > CFG.pool_root + 2*CFG.elem_size)
-      maccess((char *)victim - 2*CFG.elem_size );
+      maccess_fence((char *)victim - 2*CFG.elem_size );
 
     if((char *)victim < CFG.pool_roof - 2*CFG.elem_size)
-      maccess((char *)victim + 2*CFG.elem_size);
+      maccess_fence((char *)victim + 2*CFG.elem_size);
 
 	uint64_t delay = rdtscfence();
-	maccess (victim);
+	maccess_fence (victim);
 	delay = rdtscfence() - delay;
     if(delay < CFG.flush_high) {
       latency += (float)(delay);
@@ -147,7 +148,7 @@ bool test_arb(elem_t *ptr) {
     elem_t *p = ptr;
     while(p) {
       uint64_t time = rdtscfence();
-      maccess(p);
+      maccess_fence(p);
       if(rdtscfence() - time > CFG.flush_low)
         count++;
       p = p->next;
@@ -181,12 +182,26 @@ void traverse_list_3(elem_t *ptr) {
 }
 
 void traverse_list_4(elem_t *ptr) {
-  while(ptr) {
+  while(ptr && ptr->next && ptr->next->next) {
     maccess(ptr);
+    maccess(ptr->next);
+    maccess(ptr->next->next);
     maccess(ptr);
-    maccess(ptr);
+    maccess(ptr->next);
+    maccess(ptr->next->next);
+    ptr = ptr->next;
+  }
+}
+
+
+void traverse_list_rr(elem_t *ptr) {
+  while(ptr->next) {
     maccess(ptr);
     ptr = ptr->next;
+  }
+  while(ptr->prev) {
+    maccess(ptr);
+    ptr = ptr->prev;
   }
 }
 
