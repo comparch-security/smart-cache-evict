@@ -221,11 +221,11 @@ void traverse_list_3(elem_t *ptr) {
 }
 
 void traverse_list_4(elem_t *ptr) {
-  while(ptr && ptr->next && ptr->next->next) {
+  while(ptr && ptr->next) {
     maccess(ptr);
+    maccess(ptr->next);
     maccess(ptr);
-    maccess(ptr);
-    maccess(ptr);
+    maccess(ptr->next);
     ptr = ptr->next;
   }
 }

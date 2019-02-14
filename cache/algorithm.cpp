@@ -38,7 +38,7 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
         *candidate = append_list(*candidate, stack[stack_write]);
         retry = 0;
       } else {
-        if(ltsz <= way +1) way = ltsz;
+        if(ltsz <= way +1) way = ltsz - 1;
         break;
       }
     }
