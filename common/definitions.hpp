@@ -7,6 +7,7 @@
 typedef struct elem {
   struct elem *next;
   struct elem *prev;
+  int ltsz;
 } elem_t;
 
 struct config {

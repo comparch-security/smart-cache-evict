@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <set>
+#include <vector>
 
 #include <cstdio>
 
@@ -88,8 +89,8 @@ void calibrate(elem_t *victim) {
 #endif
 
   assert(flushed > unflushed);
-  CFG.flush_low = (int)((1.0*flushed + 2.0*unflushed) / 3);
-  CFG.flush_high  = (int)(flushed * 2.0);
+  CFG.flush_low = (int)((2.5*flushed + 1.0*unflushed) / 3.5);
+  CFG.flush_high  = (int)(flushed * 1.5);
   printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
@@ -110,10 +111,48 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
 	maccess (victim);
 	maccess (victim);
 	maccess (victim);
-	maccess (victim);
+	maccess_fence (victim);
 
 	for(int j=0; j<CFG.scans; j++)
       CFG.traverse(ptr);
+
+    if((char *)victim > CFG.pool_root + 2*CFG.elem_size)
+      maccess_fence((char *)victim - 2*CFG.elem_size );
+
+    if((char *)victim < CFG.pool_roof - 2*CFG.elem_size)
+      maccess_fence((char *)victim + 2*CFG.elem_size);
+
+	uint64_t delay = rdtscfence();
+	maccess_fence (victim);
+	delay = rdtscfence() - delay;
+    if(delay < CFG.flush_high) {
+      latency += (float)(delay);
+      i++;
+    }
+    t++;
+  }
+
+  if(i == CFG.trials) {
+    latency /= i;
+    return latency > (float)CFG.flush_low;
+  } else {
+    return false;
+  }
+}
+
+bool test_tar_lists(std::vector<elem_t *> &lists, elem_t *victim, int skip) {
+  float latency = 0.0;
+  int i=0, t=0;
+
+  while(i<CFG.trials && t<CFG.trials*16) {
+	maccess (victim);
+	maccess (victim);
+	maccess (victim);
+	maccess_fence (victim);
+
+	for(int j=0; j<CFG.scans; j++)
+      for(int k=0; k<lists.size(); k++)
+        if(k!=skip) CFG.traverse(lists[k]);
 
     if((char *)victim > CFG.pool_root + 2*CFG.elem_size)
       maccess_fence((char *)victim - 2*CFG.elem_size );
@@ -184,11 +223,9 @@ void traverse_list_3(elem_t *ptr) {
 void traverse_list_4(elem_t *ptr) {
   while(ptr && ptr->next && ptr->next->next) {
     maccess(ptr);
-    maccess(ptr->next);
-    maccess(ptr->next->next);
     maccess(ptr);
-    maccess(ptr->next);
-    maccess(ptr->next->next);
+    maccess(ptr);
+    maccess(ptr);
     ptr = ptr->next;
   }
 }
@@ -215,15 +252,12 @@ traverse_func choose_traverse_func(int t) {
 }
 
 int list_size(elem_t *ptr) {
-  int rv = 0;
-  while(ptr) {
-    rv++;
-    ptr = ptr->next;
-  }
-  return rv;
+  return ptr->ltsz;
 }
 
-elem_t *pick_from_list(elem_t **pptr, int ltsz, int pksz) {
+elem_t *pick_from_list(elem_t **pptr, int pksz) {
+  printf("pick_from_list(%d, %d)\n", (*pptr)->ltsz, pksz);
+  int ltsz = (*pptr)->ltsz;
   std::set<int> pick_set;
   while(pick_set.size() < pksz) {
     pick_set.insert(random_fast() % ltsz);
@@ -249,6 +283,8 @@ elem_t *pick_from_list(elem_t **pptr, int ltsz, int pksz) {
     }
     index++;
   }
+  rv->ltsz = pksz;
+  (*pptr)->ltsz = ltsz - pksz;
   return rv;
 }
 
@@ -258,6 +294,55 @@ elem_t *append_list(elem_t *lptr, elem_t *rptr) {
   while(lptr->next != NULL) lptr = lptr->next;
   lptr->next = rptr;
   if(rptr != NULL) rptr->prev = lptr;
+  rv->ltsz += rptr->ltsz;
+  return rv;
+}
+
+std::vector<elem_t *> split_list(elem_t *ptr, int way) {
+  int vsz = ptr->ltsz > way ? way : ptr->ltsz;
+  std::vector<elem_t *> rv(vsz, NULL);
+  std::vector<elem_t *> ltp(vsz, NULL);
+  int index = 0;
+  while(ptr) {
+    if(rv[index] == NULL) {
+      rv[index] = ptr;
+      ltp[index] = ptr;
+      ptr->prev = NULL;
+      rv[index]->ltsz = 1;
+    } else {
+      rv[index]->ltsz++;
+      ltp[index]->next = ptr;
+      ptr->prev = ltp[index];
+      ltp[index] = ptr;
+    }
+    index = (index + 1) % vsz;
+    ptr = ptr->next;
+  }
+  for(int i=0; i<vsz; i++) {
+    ltp[i]->next = NULL;
+  }
+  return rv;
+}
+
+elem_t *combine_lists(std::vector<elem_t *>lists) {
+  int vsz = lists.size();
+  elem_t *rv = NULL, *ptr = NULL;
+  int ltsz = 0;
+  for(int i=0; i<vsz; i++) {
+    if(lists[i] != NULL) {
+      ltsz += lists[i]->ltsz;
+      if(ptr == NULL) {
+        ptr = lists[i];
+        rv = lists[i];
+      } else {
+        ptr->next = lists[i];
+        ptr->next->prev = ptr;
+      }
+      while(ptr->next) ptr = ptr->next;
+    }
+  }
+  ptr->next = NULL;
+  rv->ltsz = ltsz;
   return rv;
 }
 

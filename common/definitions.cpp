@@ -30,13 +30,13 @@ void init_cfg() {
   CFG_SET_ENTRY("cache_slices",     CFG.cache_slices,     0               )
   CFG_SET_ENTRY("flush_low",        CFG.flush_low,        0               )
   CFG_SET_ENTRY("flush_high",       CFG.flush_high,       0               )
-  CFG_SET_ENTRY("trials",           CFG.trials,           4               )
-  CFG_SET_ENTRY("scans",            CFG.scans,            2               )
+  CFG_SET_ENTRY("trials",           CFG.trials,           8               )
+  CFG_SET_ENTRY("scans",            CFG.scans,            8               )
   CFG_SET_ENTRY("calibrate_repeat", CFG.calibrate_repeat, 1000            )
   CFG_SET_ENTRY("retry",            CFG.retry,            true            )
   CFG_SET_ENTRY("rtlimit",          CFG.rtlimit,          32              )
   CFG_SET_ENTRY("rollback",         CFG.rollback,         true            )
-  CFG_SET_ENTRY("rblimit",          CFG.rblimit,          16              )
+  CFG_SET_ENTRY("rblimit",          CFG.rblimit,          32              )
   CFG_SET_ENTRY("ignoreslice",      CFG.ignoreslice,      true            )
   CFG_SET_ENTRY("findallcolors",    CFG.findallcolors,    false           )
   CFG_SET_ENTRY("findallcongruent", CFG.findallcongruent, false           )
@@ -48,7 +48,7 @@ void init_cfg() {
     int t = db["traverse"];
     CFG.traverse = choose_traverse_func(t);
   } else {
-    CFG.traverse = traverse_list_rr;
+    CFG.traverse = traverse_list_4;
     db["traverse"] = 4;
   }
 
@@ -58,6 +58,7 @@ void init_cfg() {
   CFG.pool = (elem_t *)CFG.pool_root;
   elem_t *ptr = CFG.pool;
   elem_t *rv = ptr;
+  ptr->ltsz = CFG.pool_size;
   ptr->prev = NULL;
   for(uint32_t i=1; i<CFG.pool_size; i++) {
     ptr->next = (elem_t *)((char *)ptr + CFG.elem_size);
@@ -78,13 +79,9 @@ void dump_cfg() {
 }
 
 elem_t *allocate_list(int ltsz) {
-  elem_t *rv = pick_from_list(&CFG.pool, CFG.pool_size, ltsz);
-  CFG.pool_size -= ltsz;
-  return rv;
+  return pick_from_list(&CFG.pool, ltsz);
 }
 
 void free_list(elem_t *l) {
-  int ltsz = list_size(l);
   CFG.pool = append_list(CFG.pool, l);
-  CFG.pool_size += ltsz;
 }
