@@ -22,5 +22,6 @@ int main() {
     free_list(candidate);
     free_list(victim);
   }
+  printf("the predicted way = %d\n", way);
   return 0;
 }

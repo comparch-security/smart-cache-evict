@@ -57,7 +57,6 @@ void init_cfg() {
   CFG.pool_roof = CFG.pool_root + CFG.pool_size * CFG.elem_size;
   CFG.pool = (elem_t *)CFG.pool_root;
   elem_t *ptr = CFG.pool;
-  elem_t *rv = ptr;
   ptr->ltsz = CFG.pool_size;
   ptr->prev = NULL;
   for(uint32_t i=1; i<CFG.pool_size; i++) {
@@ -65,7 +64,8 @@ void init_cfg() {
     ptr->next->prev = ptr;
     ptr = ptr->next;
   }
-  ptr->next = NULL;  
+  ptr->next = NULL;
+  CFG.pool->tail = ptr;
 
   db_init = true;
 }
@@ -79,9 +79,11 @@ void dump_cfg() {
 }
 
 elem_t *allocate_list(int ltsz) {
+  printf("allocate_list(%d, %d)\n", CFG.pool->ltsz, ltsz);
   return pick_from_list(&CFG.pool, ltsz);
 }
 
 void free_list(elem_t *l) {
   CFG.pool = append_list(CFG.pool, l);
+  printf("free_list(%d, %d)\n", CFG.pool->ltsz, l->ltsz);
 }

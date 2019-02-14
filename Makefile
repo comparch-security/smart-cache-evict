@@ -1,7 +1,7 @@
 
 MAKE = make
 CXX = g++
-CXXFLAGS = --std=c++11 -O2 -I.
+CXXFLAGS = --std=c++11 -O2 -g -I.
 
 TARGETS = \
 	run/test-evict-ratio \

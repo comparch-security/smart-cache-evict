@@ -256,7 +256,6 @@ int list_size(elem_t *ptr) {
 }
 
 elem_t *pick_from_list(elem_t **pptr, int pksz) {
-  printf("pick_from_list(%d, %d)\n", (*pptr)->ltsz, pksz);
   int ltsz = (*pptr)->ltsz;
   std::set<int> pick_set;
   while(pick_set.size() < pksz) {
@@ -264,7 +263,7 @@ elem_t *pick_from_list(elem_t **pptr, int pksz) {
   }
 
   int index = 0;
-  elem_t *rv, *pick = NULL, *ptr = *pptr;
+  elem_t *rv, *pick = NULL, *ptr = *pptr, *pend = NULL;
   while(ptr) {
     if(pick_set.count(index)) {
       elem_t *p = ptr;
@@ -279,23 +278,27 @@ elem_t *pick_from_list(elem_t **pptr, int pksz) {
       p->next = NULL;
       pick = p;
     } else {
+      pend = ptr;
       ptr = ptr->next;
     }
     index++;
   }
   rv->ltsz = pksz;
+  rv->tail = pick;
   (*pptr)->ltsz = ltsz - pksz;
+  (*pptr)->tail = pend;
   return rv;
 }
 
 elem_t *append_list(elem_t *lptr, elem_t *rptr) {
   if(lptr == NULL) return rptr;
-  elem_t *rv = lptr;
-  while(lptr->next != NULL) lptr = lptr->next;
-  lptr->next = rptr;
-  if(rptr != NULL) rptr->prev = lptr;
-  rv->ltsz += rptr->ltsz;
-  return rv;
+  if(rptr != NULL) {
+    rptr->prev = lptr->tail;
+    lptr->ltsz += rptr->ltsz;
+    lptr->tail = rptr->tail;
+  }
+  printf("append into list size: %d\n", lptr->ltsz);
+  return lptr;
 }
 
 std::vector<elem_t *> split_list(elem_t *ptr, int way) {
@@ -320,6 +323,7 @@ std::vector<elem_t *> split_list(elem_t *ptr, int way) {
   }
   for(int i=0; i<vsz; i++) {
     ltp[i]->next = NULL;
+    rv[i]->tail = ltp[i];
   }
   return rv;
 }
@@ -331,18 +335,18 @@ elem_t *combine_lists(std::vector<elem_t *>lists) {
   for(int i=0; i<vsz; i++) {
     if(lists[i] != NULL) {
       ltsz += lists[i]->ltsz;
-      if(ptr == NULL) {
-        ptr = lists[i];
+      if(rv == NULL) {
         rv = lists[i];
       } else {
         ptr->next = lists[i];
         ptr->next->prev = ptr;
       }
-      while(ptr->next) ptr = ptr->next;
+      ptr = lists[i]->tail;
     }
   }
   ptr->next = NULL;
   rv->ltsz = ltsz;
+  printf("combine into list size: %d\n", ltsz);
   return rv;
 }
 
