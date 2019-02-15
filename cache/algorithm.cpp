@@ -2,6 +2,7 @@
 #include "cache/cache.hpp"
 
 #include <vector>
+#include <cstdint>
 
 #include <cstdio>
 
@@ -64,7 +65,7 @@ bool trim_tar_split(elem_t **candidate, elem_t *victim, int &way) {
   int iter = 0, max_iter = way;
   int level = 0, rblevel = 0;
   while(true) {
-    std::vector<elem_t *> lists = split_list(*candidate, way+1);
+    std::vector<elem_t *> lists = split_list(*candidate, way*2);
     int vsz = lists.size();
     int i;
     for(i=0; i<vsz; i++) {
@@ -94,7 +95,7 @@ bool trim_tar_split(elem_t **candidate, elem_t *victim, int &way) {
       if(iter > max_iter) {
         printf("failed with iteration %d > %d !\n", iter, max_iter);
         break;
-      } else if(ltsz >= way && CFG.rollback && stack_read != stack_write) {
+      } else if(ltsz > way + 1 && CFG.rollback && stack_read != stack_write) {
         int max_rb = (stack_write < stack_read)
           ? stack_write + CFG.rblimit - stack_read
           : stack_write - stack_read;
@@ -117,12 +118,11 @@ bool trim_tar_split(elem_t **candidate, elem_t *victim, int &way) {
     stack_read = (stack_read + 1) % CFG.rblimit;
   }
 
-  if(ltsz <= 32) {
+  if(ltsz <= way + 1) {
+    printf("targeted victim: 0x%016lx\n", (uint64_t)victim);
     print_set(*candidate);
-  }
-
-  if(ltsz <= way) {
-    way = (ltsz + way)/2;
+    if(way > ltsz)      way = (ltsz + way)/2;
+    else if(way < ltsz) way = ltsz;
     return true;
   } else
     return false;
