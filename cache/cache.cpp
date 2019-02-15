@@ -91,7 +91,7 @@ void calibrate(elem_t *victim) {
   assert(flushed > unflushed);
   CFG.flush_low = (int)((2.5*flushed + 1.0*unflushed) / 3.5);
   CFG.flush_high  = (int)(flushed * 1.5);
-  printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
+  //printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
   {

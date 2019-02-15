@@ -81,7 +81,7 @@ bool trim_tar_split(elem_t **candidate, elem_t *victim, int &way) {
           stack_read = (stack_read + 1) % CFG.rblimit;
         }
         if(ltsz < ltsz_min) {
-          printf("%d (%d,%d,%d) %d\n", ltsz, level, iter, level-rblevel-1, i);
+          //printf("%d (%d,%d,%d) %d\n", ltsz, level, iter, level-rblevel-1, i);
           max_iter += level;
           rblevel = level;
           iter = 0;
@@ -93,7 +93,7 @@ bool trim_tar_split(elem_t **candidate, elem_t *victim, int &way) {
     *candidate = combine_lists(lists);
     if(i == vsz) {
       if(iter > max_iter) {
-        printf("failed with iteration %d > %d !\n", iter, max_iter);
+        //printf("failed with iteration %d > %d !\n", iter, max_iter);
         break;
       } else if(ltsz > way + 1 && CFG.rollback && stack_read != stack_write) {
         int max_rb = (stack_write < stack_read)
@@ -119,8 +119,8 @@ bool trim_tar_split(elem_t **candidate, elem_t *victim, int &way) {
   }
 
   if(ltsz <= way + 1) {
-    printf("targeted victim: 0x%016lx\n", (uint64_t)victim);
-    print_set(*candidate);
+    //printf("targeted victim: 0x%016lx\n", (uint64_t)victim);
+    //print_set(*candidate);
     if(way > ltsz)      way = (ltsz + way)/2;
     else if(way < ltsz) way = ltsz;
     return true;
