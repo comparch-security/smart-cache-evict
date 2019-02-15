@@ -25,4 +25,6 @@ extern std::vector<elem_t *> split_list(elem_t *lptr, int way);
 extern elem_t *combine_lists(std::vector<elem_t *>lists);
 extern float evict_rate(int ltsz, int trial);
 
+extern void print_set(elem_t *ptr);
+
 #endif

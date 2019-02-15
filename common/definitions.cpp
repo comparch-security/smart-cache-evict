@@ -30,13 +30,13 @@ void init_cfg() {
   CFG_SET_ENTRY("cache_slices",     CFG.cache_slices,     0               )
   CFG_SET_ENTRY("flush_low",        CFG.flush_low,        0               )
   CFG_SET_ENTRY("flush_high",       CFG.flush_high,       0               )
-  CFG_SET_ENTRY("trials",           CFG.trials,           8               )
-  CFG_SET_ENTRY("scans",            CFG.scans,            8               )
+  CFG_SET_ENTRY("trials",           CFG.trials,           4               )
+  CFG_SET_ENTRY("scans",            CFG.scans,            4               )
   CFG_SET_ENTRY("calibrate_repeat", CFG.calibrate_repeat, 1000            )
   CFG_SET_ENTRY("retry",            CFG.retry,            true            )
   CFG_SET_ENTRY("rtlimit",          CFG.rtlimit,          32              )
   CFG_SET_ENTRY("rollback",         CFG.rollback,         true            )
-  CFG_SET_ENTRY("rblimit",          CFG.rblimit,          32              )
+  CFG_SET_ENTRY("rblimit",          CFG.rblimit,          64              )
   CFG_SET_ENTRY("ignoreslice",      CFG.ignoreslice,      true            )
   CFG_SET_ENTRY("findallcolors",    CFG.findallcolors,    false           )
   CFG_SET_ENTRY("findallcongruent", CFG.findallcongruent, false           )
@@ -57,7 +57,6 @@ void init_cfg() {
   CFG.pool_roof = CFG.pool_root + CFG.pool_size * CFG.elem_size;
   CFG.pool = (elem_t *)CFG.pool_root;
   elem_t *ptr = CFG.pool;
-  elem_t *rv = ptr;
   ptr->ltsz = CFG.pool_size;
   ptr->prev = NULL;
   for(uint32_t i=1; i<CFG.pool_size; i++) {
@@ -65,7 +64,8 @@ void init_cfg() {
     ptr->next->prev = ptr;
     ptr = ptr->next;
   }
-  ptr->next = NULL;  
+  ptr->next = NULL;
+  CFG.pool->tail = ptr;
 
   db_init = true;
 }
@@ -79,9 +79,11 @@ void dump_cfg() {
 }
 
 elem_t *allocate_list(int ltsz) {
+  //printf("allocate_list(%d, %d)\n", CFG.pool->ltsz, ltsz);
   return pick_from_list(&CFG.pool, ltsz);
 }
 
 void free_list(elem_t *l) {
   CFG.pool = append_list(CFG.pool, l);
+  //printf("free_list(%d, %d)\n", CFG.pool->ltsz, l->ltsz);
 }

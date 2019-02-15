@@ -221,11 +221,37 @@ void traverse_list_3(elem_t *ptr) {
 }
 
 void traverse_list_4(elem_t *ptr) {
-  while(ptr && ptr->next) {
+  while(ptr && ptr->next && ptr->next->next) {
+    maccess(ptr);
+    maccess(ptr->next);
+    maccess(ptr->next->next);
+    maccess(ptr);
+    maccess(ptr->next);
+    maccess(ptr->next->next);
+    maccess(ptr);
+    maccess(ptr->next);
+    maccess(ptr->next->next);
+    maccess(ptr);
+    maccess(ptr->next);
+    maccess(ptr->next->next);
+    ptr = ptr->next;
+  }
+  if(ptr && ptr->next) {
     maccess(ptr);
     maccess(ptr->next);
     maccess(ptr);
     maccess(ptr->next);
+    maccess(ptr);
+    maccess(ptr->next);
+    maccess(ptr);
+    maccess(ptr->next);
+    ptr = ptr->next;
+  }
+  if(ptr) {
+    maccess(ptr);
+    maccess(ptr);
+    maccess(ptr);
+    maccess(ptr);
     ptr = ptr->next;
   }
 }
@@ -252,11 +278,12 @@ traverse_func choose_traverse_func(int t) {
 }
 
 int list_size(elem_t *ptr) {
-  return ptr->ltsz;
+  int rv = 0;
+  while(ptr) { rv++; ptr = ptr->next; }
+  return rv;
 }
 
 elem_t *pick_from_list(elem_t **pptr, int pksz) {
-  printf("pick_from_list(%d, %d)\n", (*pptr)->ltsz, pksz);
   int ltsz = (*pptr)->ltsz;
   std::set<int> pick_set;
   while(pick_set.size() < pksz) {
@@ -264,7 +291,7 @@ elem_t *pick_from_list(elem_t **pptr, int pksz) {
   }
 
   int index = 0;
-  elem_t *rv, *pick = NULL, *ptr = *pptr;
+  elem_t *rv, *pick = NULL, *ptr = *pptr, *pend = NULL;
   while(ptr) {
     if(pick_set.count(index)) {
       elem_t *p = ptr;
@@ -279,23 +306,28 @@ elem_t *pick_from_list(elem_t **pptr, int pksz) {
       p->next = NULL;
       pick = p;
     } else {
+      pend = ptr;
       ptr = ptr->next;
     }
     index++;
   }
   rv->ltsz = pksz;
+  rv->tail = pick;
   (*pptr)->ltsz = ltsz - pksz;
+  (*pptr)->tail = pend;
   return rv;
 }
 
 elem_t *append_list(elem_t *lptr, elem_t *rptr) {
   if(lptr == NULL) return rptr;
-  elem_t *rv = lptr;
-  while(lptr->next != NULL) lptr = lptr->next;
-  lptr->next = rptr;
-  if(rptr != NULL) rptr->prev = lptr;
-  rv->ltsz += rptr->ltsz;
-  return rv;
+  if(rptr != NULL) {
+    rptr->prev = lptr->tail;
+    lptr->tail->next = rptr;
+    lptr->ltsz += rptr->ltsz;
+    lptr->tail = rptr->tail;
+  }
+  //printf("append into list size: %d-%d <- %d\n", lptr->ltsz, list_size(lptr), rptr->ltsz);
+  return lptr;
 }
 
 std::vector<elem_t *> split_list(elem_t *ptr, int way) {
@@ -319,8 +351,11 @@ std::vector<elem_t *> split_list(elem_t *ptr, int way) {
     ptr = ptr->next;
   }
   for(int i=0; i<vsz; i++) {
+    //printf("%d ", rv[i]->ltsz);
     ltp[i]->next = NULL;
+    rv[i]->tail = ltp[i];
   }
+  //printf("\n");
   return rv;
 }
 
@@ -331,18 +366,18 @@ elem_t *combine_lists(std::vector<elem_t *>lists) {
   for(int i=0; i<vsz; i++) {
     if(lists[i] != NULL) {
       ltsz += lists[i]->ltsz;
-      if(ptr == NULL) {
-        ptr = lists[i];
+      if(rv == NULL) {
         rv = lists[i];
       } else {
         ptr->next = lists[i];
-        ptr->next->prev = ptr;
+        lists[i]->prev = ptr;
       }
-      while(ptr->next) ptr = ptr->next;
+      ptr = lists[i]->tail;
     }
   }
-  ptr->next = NULL;
+  rv->tail = ptr;
   rv->ltsz = ltsz;
+  //printf("combine into list size: %d\n", ltsz);
   return rv;
 }
 
@@ -356,4 +391,16 @@ float evict_rate(int ltsz, int trial) {
     free_list(ev_list);
   }
   return rate / trial;
+}
+
+void print_set(elem_t *ptr) {
+  printf("Set with %d elements:\n", ptr->ltsz);
+  int i = 0;
+  while(ptr) {
+    printf("0x%016lx ", (uint64_t)ptr);
+    ptr = ptr->next;
+    i++;
+    if(i==4) { printf("\n"); i=0;}
+  }
+  printf("\n");
 }

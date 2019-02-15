@@ -10,7 +10,7 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
   int stack_read = 0, stack_write = 0;
   bool started = false;
   int retry = 0;
-  int ltsz = list_size(*candidate);
+  int ltsz = (*candidate)->ltsz;
   int ltsz_min = ltsz;
   long long iter = 0;
   while(true) {
@@ -34,7 +34,7 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
       if(CFG.retry && retry < (step > 1 ? CFG.rtlimit : 4*way)) retry++;
       else if(ltsz > way + 1 && CFG.rollback && stack_read != stack_write) {
         stack_write = (stack_write + CFG.rblimit - 1) % CFG.rblimit;
-        ltsz += list_size(stack[stack_write]);
+        ltsz += stack[stack_write]->ltsz;
         *candidate = append_list(*candidate, stack[stack_write]);
         retry = 0;
       } else {
@@ -59,26 +59,31 @@ bool trim_tar_split(elem_t **candidate, elem_t *victim, int &way) {
   int stack_read = 0, stack_write = 0;
   bool started = false;
   int retry = 0;
-  int ltsz = list_size(*candidate);
+  int ltsz = (*candidate)->ltsz;
   int ltsz_min = ltsz;
-  long long iter = 0;
+  int iter = 0, max_iter = way;
+  int level = 0, rblevel = 0;
   while(true) {
-    std::vector<elem_t *> lists = split_list(*candidate, way);
+    std::vector<elem_t *> lists = split_list(*candidate, way+1);
     int vsz = lists.size();
     int i;
     for(i=0; i<vsz; i++) {
-      iter += ltsz;
+      iter++;
       if(test_tar_lists(lists, victim, i)) {
         ltsz -= lists[i]->ltsz;
         stack[stack_write] = lists[i];
         lists[i] = NULL;
         stack_write = (stack_write + 1) % CFG.rblimit;
+        level++;
         if(stack_read == stack_write) {
           free_list(stack[stack_read]);
           stack_read = (stack_read + 1) % CFG.rblimit;
         }
         if(ltsz < ltsz_min) {
-          printf("%d (0x%016llx) %d\n", ltsz, iter, i);
+          printf("%d (%d,%d,%d) %d\n", ltsz, level, iter, level-rblevel-1, i);
+          max_iter += level;
+          rblevel = level;
+          iter = 0;
           ltsz_min = ltsz;
         }
         break;
@@ -86,12 +91,21 @@ bool trim_tar_split(elem_t **candidate, elem_t *victim, int &way) {
     }
     *candidate = combine_lists(lists);
     if(i == vsz) {
-      if(ltsz > way + 1 && CFG.rollback && stack_read != stack_write) {
-        stack_write = (stack_write + CFG.rblimit - 1) % CFG.rblimit;
-        ltsz += list_size(stack[stack_write]);
-        *candidate = append_list(*candidate, stack[stack_write]);
+      if(iter > max_iter) {
+        printf("failed with iteration %d > %d !\n", iter, max_iter);
+        break;
+      } else if(ltsz >= way && CFG.rollback && stack_read != stack_write) {
+        int max_rb = (stack_write < stack_read)
+          ? stack_write + CFG.rblimit - stack_read
+          : stack_write - stack_read;
+        for(int r=0; r < 1 + (max_rb/4); r++) {
+          stack_write = (stack_write + CFG.rblimit - 1) % CFG.rblimit;
+          level--;
+          ltsz += stack[stack_write]->ltsz;
+          *candidate = append_list(*candidate, stack[stack_write]);
+        }
+        if(rblevel > level) rblevel = level;
       } else {
-        if(ltsz <= way +1) way = ltsz;
         break;
       }
     }
@@ -103,5 +117,13 @@ bool trim_tar_split(elem_t **candidate, elem_t *victim, int &way) {
     stack_read = (stack_read + 1) % CFG.rblimit;
   }
 
-  return ltsz <= way;
+  if(ltsz <= 32) {
+    print_set(*candidate);
+  }
+
+  if(ltsz <= way) {
+    way = (ltsz + way)/2;
+    return true;
+  } else
+    return false;
 }
