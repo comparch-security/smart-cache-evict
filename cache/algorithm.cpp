@@ -13,33 +13,48 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
   int retry = 0;
   int ltsz = (*candidate)->ltsz;
   int ltsz_min = ltsz;
-  long long iter = 0;
+  int iter = 0, max_iter = way;
+  int level = 0, rblevel = 0;
   while(true) {
     int step = ltsz > way ? ltsz / way : 1;
-    iter += ltsz - step;
+    iter++;
     stack[stack_write] = pick_from_list(candidate, step);
     if(test_tar(*candidate, victim)) {
-      retry = 0;
       ltsz -= step;
       stack_write = (stack_write + 1) % CFG.rblimit;
+      level++;
       if(stack_read == stack_write) {
         free_list(stack[stack_read]);
         stack_read = (stack_read + 1) % CFG.rblimit;
       }
       if(ltsz < ltsz_min) {
+        printf("%d (%d,%d,%d) %d\n", ltsz, level, iter, level-rblevel-1, retry);
+        max_iter += level*16;
+        rblevel = level;
+        iter = 0;
         ltsz_min = ltsz;
-        printf("%d (0x%016llx) %d\n", ltsz, iter, retry);
       }
+      retry = 0;
     } else {
       *candidate = append_list(*candidate, stack[stack_write]);
-      if(CFG.retry && retry < (step > 1 ? CFG.rtlimit : 4*way)) retry++;
+      if(iter > max_iter) {
+        printf("failed with iteration %d > %d !\n", iter, max_iter);
+        break;
+      } else if(CFG.retry && retry < CFG.rtlimit)
+        retry++;
       else if(ltsz > way + 1 && CFG.rollback && stack_read != stack_write) {
-        stack_write = (stack_write + CFG.rblimit - 1) % CFG.rblimit;
-        ltsz += stack[stack_write]->ltsz;
-        *candidate = append_list(*candidate, stack[stack_write]);
+        int max_rb = (stack_write < stack_read)
+          ? stack_write + CFG.rblimit - stack_read
+          : stack_write - stack_read;
+        for(int r=0; r < 1 + (max_rb/4); r++) {
+          stack_write = (stack_write + CFG.rblimit - 1) % CFG.rblimit;
+          level--;
+          ltsz += stack[stack_write]->ltsz;
+          *candidate = append_list(*candidate, stack[stack_write]);
+        }
+        if(rblevel > level) rblevel = level;
         retry = 0;
       } else {
-        if(ltsz <= way +1) way = ltsz - 1;
         break;
       }
     }
@@ -51,8 +66,14 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
     stack_read = (stack_read + 1) % CFG.rblimit;
   }
 
-  printf("CFG.pool->size = %d\n", CFG.pool->ltsz);
-  return ltsz <= way;
+  if(ltsz <= way + 1) {
+    printf("targeted victim: 0x%016lx\n", (uint64_t)victim);
+    print_set(*candidate);
+    if(way > ltsz)      way = (ltsz + way)/2;
+    else if(way < ltsz) way = ltsz;
+    return true;
+  } else
+    return false;
 }
 
 bool trim_tar_split(elem_t **candidate, elem_t *victim, int &way) {

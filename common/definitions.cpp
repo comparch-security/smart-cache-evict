@@ -2,6 +2,7 @@
 #include "cache/cache.hpp"
 #include "database/json.hpp"
 #include <fstream>
+#include <sys/mman.h>
 
 struct config CFG;
 using json = nlohmann::json;
@@ -34,7 +35,7 @@ void init_cfg() {
   CFG_SET_ENTRY("scans",            CFG.scans,            4               )
   CFG_SET_ENTRY("calibrate_repeat", CFG.calibrate_repeat, 1000            )
   CFG_SET_ENTRY("retry",            CFG.retry,            true            )
-  CFG_SET_ENTRY("rtlimit",          CFG.rtlimit,          32              )
+  CFG_SET_ENTRY("rtlimit",          CFG.rtlimit,          128             )
   CFG_SET_ENTRY("rollback",         CFG.rollback,         true            )
   CFG_SET_ENTRY("rblimit",          CFG.rblimit,          64              )
   CFG_SET_ENTRY("ignoreslice",      CFG.ignoreslice,      true            )
@@ -53,7 +54,13 @@ void init_cfg() {
   }
 
   if(!db_init) free(CFG.pool_root);
-  CFG.pool_root = (char *)malloc(CFG.pool_size * CFG.elem_size);
+  //CFG.pool_root = (char *)malloc(CFG.pool_size * CFG.elem_size);
+  CFG.pool_root = (char *)mmap(NULL, CFG.pool_size * CFG.elem_size, PROT_READ|PROT_WRITE,
+                               MAP_PRIVATE|MAP_ANONYMOUS|MAP_HUGETLB, 0, 0);
+  if(CFG.pool_root == MAP_FAILED) {
+    printf("Failed to allocate pool!\n");
+    exit(1);
+  }
   CFG.pool_roof = CFG.pool_root + CFG.pool_size * CFG.elem_size;
   CFG.pool = (elem_t *)CFG.pool_root;
   elem_t *ptr = CFG.pool;

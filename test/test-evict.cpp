@@ -21,7 +21,7 @@ int main() {
       victim = allocate_list(1);
       calibrate(victim);
     }
-    bool rv = trim_tar_split(&candidate, victim, way);
+    bool rv = trim_tar_ran(&candidate, victim, way);
     free_list(candidate);
     free_list(victim);
     if(rv) {
