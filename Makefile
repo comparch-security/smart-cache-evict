@@ -8,6 +8,7 @@ TARGETS = \
 	run/test-evict \
 
 OBJECTS = \
+	cache/list.o \
 	cache/cache.o \
 	cache/algorithm.o \
 	common/definitions.o \

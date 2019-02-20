@@ -1,5 +1,5 @@
 #include "common/definitions.hpp"
-#include "cache/cache.hpp"
+#include "cache/list.hpp"
 #include "database/json.hpp"
 #include <fstream>
 #include <sys/mman.h>
@@ -58,7 +58,12 @@ void init_cfg() {
   CFG.pool_root = (char *)mmap(NULL, CFG.pool_size * CFG.elem_size, PROT_READ|PROT_WRITE,
                                MAP_PRIVATE|MAP_ANONYMOUS|MAP_HUGETLB, 0, 0);
   if(CFG.pool_root == MAP_FAILED) {
-    printf("Failed to allocate pool!\n");
+    printf("Failed to allocate pool using huge pages. Use normal pages instead.\n");
+    CFG.pool_root = (char *)mmap(NULL, CFG.pool_size * CFG.elem_size, PROT_READ|PROT_WRITE,
+                                 MAP_PRIVATE|MAP_ANONYMOUS, 0, 0);
+  }
+  if(CFG.pool_root == MAP_FAILED) {
+    printf("Failed to allocate pool using normal pages neither!\n");
     exit(1);
   }
   CFG.pool_roof = CFG.pool_root + CFG.pool_size * CFG.elem_size;

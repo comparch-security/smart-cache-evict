@@ -8,7 +8,7 @@ int main() {
   randomize_seed();
   int way = 32;
   int succ = 0, iter = 0, keep = 0;
-  int csize = 4000;
+  int csize = 8000;
   int way_pre = way;
   while (keep < 3 && iter < 200) {
     elem_t *candidate = allocate_list(csize);
