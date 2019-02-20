@@ -31,7 +31,7 @@ void init_cfg() {
   CFG_SET_ENTRY("cache_slices",     CFG.cache_slices,     0               )
   CFG_SET_ENTRY("flush_low",        CFG.flush_low,        0               )
   CFG_SET_ENTRY("flush_high",       CFG.flush_high,       0               )
-  CFG_SET_ENTRY("trials",           CFG.trials,           4               )
+  CFG_SET_ENTRY("trials",           CFG.trials,           2               )
   CFG_SET_ENTRY("scans",            CFG.scans,            4               )
   CFG_SET_ENTRY("calibrate_repeat", CFG.calibrate_repeat, 1000            )
   CFG_SET_ENTRY("retry",            CFG.retry,            true            )

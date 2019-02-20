@@ -79,6 +79,27 @@ void traverse_list_rr(elem_t *ptr) {
   }
 }
 
+void traverse_list_param(elem_t *ptr, int repeat, int dis, int step) {
+  int c=0, d=0, i=0;
+  elem_t *start = ptr, *next = NULL;
+  do {
+    ptr = start;
+    while(c<repeat) {
+      c++;
+      while(d<dis) {
+        if(d == step) next = ptr;
+        if(ptr) { maccess_fence(ptr); ptr = ptr->next; }
+        d++;
+      }
+      d = 0;
+      ptr = start;
+    }
+    c = 0;
+    start = next;
+    i += step;
+  } while(start != NULL);
+}
+
 traverse_func choose_traverse_func(int t) {
   switch(t) {
   case 1:  return traverse_list_1;

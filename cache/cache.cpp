@@ -4,7 +4,7 @@
 
 #include <cassert>
 
-#define SCE_CACHE_CALIBRATE_HISTO
+//#define SCE_CACHE_CALIBRATE_HISTO
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
   #include "util/statistics.hpp"
@@ -82,7 +82,7 @@ void calibrate(elem_t *victim) {
 #endif
 
   assert(flushed > unflushed);
-  CFG.flush_low = (int)((2.5*flushed + 1.0*unflushed) / 3.5);
+  CFG.flush_low = (int)((2.0*flushed + 1.5*unflushed) / 3.5);
   CFG.flush_high  = (int)(flushed * 1.5);
   printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
 
@@ -106,8 +106,10 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
 	maccess (victim);
 	maccess_fence (victim);
 
-	for(int j=0; j<CFG.scans; j++)
-      CFG.traverse(ptr);
+	for(int j=0; j<CFG.scans; j++) {
+      traverse_list_param(ptr, 2, 2, 1);
+      //traverse_list_rr(ptr);
+    }
 
     if((char *)victim > CFG.pool_root + 2*CFG.elem_size)
       maccess_fence((char *)victim - 2*CFG.elem_size );
@@ -118,7 +120,7 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
 	uint64_t delay = rdtscfence();
 	maccess_fence (victim);
 	delay = rdtscfence() - delay;
-    printf("%ld ", delay);
+    //printf("%ld ", delay);
     if(delay < CFG.flush_high) {
       latency += (float)(delay);
       i++;
@@ -126,7 +128,7 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
     t++;
   }
 
-  printf("\n");
+  //printf("\n");
 
   if(i == CFG.trials) {
     latency /= i;

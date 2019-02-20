@@ -29,8 +29,8 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
         stack_read = (stack_read + 1) % CFG.rblimit;
       }
       if(ltsz < ltsz_min) {
-        //printf("%d (%d,%d,%d) %d\n", ltsz, level, iter, level-rblevel-1, retry);
-        max_iter += level*16;
+        printf("%d (%d,%d,%d) %d\n", ltsz, level, iter, level-rblevel-1, retry);
+        max_iter += level*4;
         rblevel = level;
         iter = 0;
         ltsz_min = ltsz;
@@ -47,7 +47,7 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
         int max_rb = (stack_write < stack_read)
           ? stack_write + CFG.rblimit - stack_read
           : stack_write - stack_read;
-        for(int r=0; r < 1 + (max_rb/4); r++) {
+        for(int r=0; r < 1 + (max_rb/8); r++) {
           stack_write = (stack_write + CFG.rblimit - 1) % CFG.rblimit;
           level--;
           ltsz += stack[stack_write]->ltsz;
