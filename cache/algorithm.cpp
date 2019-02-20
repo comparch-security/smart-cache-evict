@@ -149,3 +149,22 @@ bool trim_tar_split(elem_t **candidate, elem_t *victim, int &way) {
   } else
     return false;
 }
+
+bool trim_tar_combined_ran(elem_t **candidate, elem_t *victim, int &way, int csize, int th, int tmax) {
+  int tcnt = 0;
+  elem_t *residue = NULL;
+  bool rv = false;
+  do {
+    printf("pool size: %d\n", CFG.pool->ltsz);
+    while(*candidate == NULL || !test_tar(*candidate, victim))
+      *candidate = allocate_list(csize);
+    rv = trim_tar_ran(candidate, victim, way);
+    if(!rv) {
+      if(residue == NULL) residue = *candidate;
+      else                residue = append_list(residue, *candidate);
+      if(residue->ltsz > th) *candidate = residue;
+      else                   *candidate = NULL;
+    }
+  } while(!rv && tcnt < tmax);
+  return rv;
+}

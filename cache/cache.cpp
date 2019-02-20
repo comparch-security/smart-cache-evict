@@ -3,6 +3,7 @@
 #include "util/assembly.hpp"
 
 #include <cassert>
+#include <cstdio>
 
 //#define SCE_CACHE_CALIBRATE_HISTO
 

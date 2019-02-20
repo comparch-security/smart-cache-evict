@@ -6,6 +6,7 @@ CXXFLAGS = --std=c++11 -O3 -I.
 TARGETS = \
 	run/test-evict-ratio \
 	run/test-evict \
+	run/test-evict-combine \
 
 OBJECTS = \
 	cache/list.o \
