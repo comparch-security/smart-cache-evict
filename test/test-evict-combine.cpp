@@ -14,16 +14,11 @@ int main() {
     elem_t *victim = allocate_list(1);
     elem_t *candidate = NULL;
     calibrate(victim);
-    bool rv = trim_tar_combined_ran(&candidate, victim, way, csize, 600, 10);
+    bool rv = trim_tar_combined_ran(&candidate, victim, way, csize, 600, 11);
     int m_way = way;
     if(rv) {
-      printf("verify result");
-      do {
-        printf(".");
-        m_way = way;
-        rv = trim_tar_ran(&candidate, victim, way);
-      } while(rv && m_way != way);
-      printf("\n");
+      rv = test_tar(candidate, victim);
+      printf("verify result %d\n", rv);
     }
     free_list(victim);
     if(rv) {

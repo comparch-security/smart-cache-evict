@@ -108,8 +108,8 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
 	maccess_fence (victim);
 
 	for(int j=0; j<CFG.scans; j++) {
-      traverse_list_param(ptr, 2, 2, 1);
-      //traverse_list_rr(ptr);
+      //traverse_list_param(ptr, 2, 2, 1);
+      traverse_list_rr(ptr);
     }
 
     if((char *)victim > CFG.pool_root + 2*CFG.elem_size)
