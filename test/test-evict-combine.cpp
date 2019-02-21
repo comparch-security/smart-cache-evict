@@ -14,8 +14,17 @@ int main() {
     elem_t *victim = allocate_list(1);
     elem_t *candidate = NULL;
     calibrate(victim);
-    bool rv = trim_tar_combined_ran(&candidate, victim, way, csize, csize/2, 5);
-    free_list(candidate);
+    bool rv = trim_tar_combined_ran(&candidate, victim, way, csize, 600, 10);
+    int m_way = way;
+    if(rv) {
+      printf("verify result");
+      do {
+        printf(".");
+        m_way = way;
+        rv = trim_tar_ran(&candidate, victim, way);
+      } while(rv && m_way != way);
+      printf("\n");
+    }
     free_list(victim);
     if(rv) {
       succ++;
@@ -25,6 +34,8 @@ int main() {
         keep = 0;
         way_pre = way;
       }
+    } else {
+      way = way_pre;
     }
     iter++;
     printf("trials %d sucesses: %d keep: %d result: %d, way=%d\n", iter, succ, keep, rv, way);

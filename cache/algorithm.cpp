@@ -5,7 +5,9 @@
 #include <vector>
 #include <cstdint>
 
+#include <cassert>
 #include <cstdio>
+#include <cstdlib>
 
 bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
   std::vector<elem_t *> stack(CFG.rblimit, 0);
@@ -14,7 +16,7 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
   int retry = 0;
   int ltsz = (*candidate)->ltsz;
   int ltsz_min = ltsz;
-  int iter = 0, max_iter = way;
+  int iter = 0, max_iter = ltsz > 1000 ? 50000 : 500000;
   int level = 0, rblevel = 0;
   while(true) {
     int step = ltsz > way ? ltsz / way : 1;
@@ -29,8 +31,8 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
         stack_read = (stack_read + 1) % CFG.rblimit;
       }
       if(ltsz < ltsz_min) {
-        printf("%d (%d,%d,%d) %d\n", ltsz, level, iter, level-rblevel-1, retry);
-        max_iter += level*4;
+        //printf("%d (%d,%d,%d) %d\n", ltsz, level, iter, level-rblevel-1, retry);
+        //max_iter += level*4;
         rblevel = level;
         iter = 0;
         ltsz_min = ltsz;
@@ -39,7 +41,7 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
     } else {
       *candidate = append_list(*candidate, stack[stack_write]);
       if(iter > max_iter) {
-        printf("failed with iteration %d > %d !\n", iter, max_iter);
+        printf("failed with iteration %d > %d! ltsz = %d\n", iter, max_iter, ltsz_min);
         break;
       } else if(CFG.retry && retry < CFG.rtlimit)
         retry++;
@@ -56,6 +58,7 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
         if(rblevel > level) rblevel = level;
         retry = 0;
       } else {
+        printf("finished with maximal rollback! ltsz = %d\n", ltsz_min);
         break;
       }
     }
@@ -68,8 +71,9 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
   }
 
   if(ltsz <= way + 1) {
-    //printf("targeted victim: 0x%016lx\n", (uint64_t)victim);
-    //print_list(*candidate);
+    printf("success with way %d\n", way);
+    printf("targeted victim: 0x%016lx\n", (uint64_t)victim);
+    print_list(*candidate);
     if(way > ltsz)      way = (ltsz + way)/2;
     else if(way < ltsz) way = ltsz;
     return true;
@@ -155,16 +159,34 @@ bool trim_tar_combined_ran(elem_t **candidate, elem_t *victim, int &way, int csi
   elem_t *residue = NULL;
   bool rv = false;
   do {
-    printf("pool size: %d\n", CFG.pool->ltsz);
-    while(*candidate == NULL || !test_tar(*candidate, victim))
-      *candidate = allocate_list(csize);
+    //assert(CFG.pool->ltsz == list_size(CFG.pool));
+    //if(residue != NULL) assert(residue->ltsz == list_size(residue));
+    //if(*candidate != NULL) assert((*candidate)->ltsz == list_size(*candidate));
+    printf("%d: pool size: %d, residue size: %d, candidate size: %d\n",
+           tcnt,
+           CFG.pool->ltsz,
+           residue == NULL ? 0 : residue->ltsz,
+           *candidate == NULL ? 0 : (*candidate)->ltsz);
+    int m_csize = csize;
+    do {
+      if(*candidate == NULL) *candidate = allocate_list(m_csize);
+      if(!test_tar(*candidate, victim)) {
+        free_list(*candidate);
+        m_csize *= 1.01;
+        printf("csize: %d\n", m_csize); fflush(stdout);
+        *candidate = NULL;
+      }
+    } while(*candidate == NULL);
     rv = trim_tar_ran(candidate, victim, way);
     if(!rv) {
-      if(residue == NULL) residue = *candidate;
+      if(residue == NULL) {residue = *candidate; th = (residue->ltsz) * 1.5;}
       else                residue = append_list(residue, *candidate);
-      if(residue->ltsz > th) *candidate = residue;
+      if(residue->ltsz > th) {*candidate = residue; residue = NULL; }
       else                   *candidate = NULL;
     }
+    tcnt++;
   } while(!rv && tcnt < tmax);
+  if(residue != NULL) free_list(residue);
+  if(*candidate != NULL) free_list(*candidate);
   return rv;
 }
