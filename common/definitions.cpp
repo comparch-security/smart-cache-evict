@@ -91,11 +91,9 @@ void dump_cfg() {
 }
 
 elem_t *allocate_list(int ltsz) {
-  //printf("allocate_list(%d, %d)\n", CFG.pool->ltsz, ltsz);
   return pick_from_list(&CFG.pool, ltsz);
 }
 
 void free_list(elem_t *l) {
   CFG.pool = append_list(CFG.pool, l);
-  //printf("free_list(%d, %d)\n", CFG.pool->ltsz, l->ltsz);
 }

@@ -10,28 +10,31 @@ int main() {
   int succ = 0, iter = 0, keep = 0;
   int csize = 8000;
   int way_pre = way;
-  while (keep < 3 && iter < 200) {
+  while (keep < 5 && iter < 200) {
     elem_t *victim = allocate_list(1);
     elem_t *candidate = NULL;
     calibrate(victim);
     bool rv = trim_tar_combined_ran(&candidate, victim, way, csize, 600, 11);
     int m_way = way;
     if(rv) {
+      way = trim_tar_final(&candidate, victim);
       rv = test_tar(candidate, victim);
-      printf("verify result %d\n", rv);
+      //printf("verify result %d\n", rv);
     }
+    free_list(candidate);
     free_list(victim);
     if(rv) {
       succ++;
       if(way_pre == way)
         keep++;
-      else {
-        keep = 0;
-        way_pre = way;
-      }
-    } else {
-      way = way_pre;
+      else if(keep > 0)
+        keep--;
+      else if(way <= way_pre)
+        way_pre--;
+      else
+        way_pre++;
     }
+    way = way_pre;
     iter++;
     printf("trials %d sucesses: %d keep: %d result: %d, way=%d\n", iter, succ, keep, rv, way);
   }
