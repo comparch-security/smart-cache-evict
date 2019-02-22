@@ -3,6 +3,7 @@
 #include "util/assembly.hpp"
 
 #include <cassert>
+#include <cstdio>
 
 //#define SCE_CACHE_CALIBRATE_HISTO
 
@@ -84,7 +85,7 @@ void calibrate(elem_t *victim) {
   assert(flushed > unflushed);
   CFG.flush_low = (int)((2.0*flushed + 1.5*unflushed) / 3.5);
   CFG.flush_high  = (int)(flushed * 1.5);
-  printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
+  //printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
   {
@@ -107,8 +108,8 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
 	maccess_fence (victim);
 
 	for(int j=0; j<CFG.scans; j++) {
-      traverse_list_param(ptr, 2, 2, 1);
-      //traverse_list_rr(ptr);
+      //traverse_list_param(ptr, 2, 2, 1);
+      traverse_list_rr(ptr);
     }
 
     if((char *)victim > CFG.pool_root + 2*CFG.elem_size)

@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <set>
 #include <cstdio>
+#include <cassert>
 
 void traverse_list_1(elem_t *ptr) {
   while(ptr) {
@@ -145,14 +146,17 @@ elem_t *pick_from_list(elem_t **pptr, int pksz) {
   }
   rv->ltsz = pksz;
   rv->tail = pick;
+  rv->prev = NULL;
   (*pptr)->ltsz = ltsz - pksz;
   (*pptr)->tail = pend;
+  (*pptr)->prev = NULL;
   return rv;
 }
 
 elem_t *append_list(elem_t *lptr, elem_t *rptr) {
   if(lptr == NULL) return rptr;
   if(rptr != NULL) {
+    assert(rptr->prev == NULL);
     rptr->prev = lptr->tail;
     lptr->tail->next = rptr;
     lptr->ltsz += rptr->ltsz;
