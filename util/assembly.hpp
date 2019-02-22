@@ -17,6 +17,10 @@ inline void maccess(void* p) {
   __asm__ volatile ("movq (%0), %%rax\n" : : "c" (p) : "rax");
 }
 
+inline void maccess_write(void* p, long long a) {
+  __asm__ volatile ("movq %1, (%0); sfence;" : : "c" (p), "r" (a) : "rax");
+}
+
 inline void maccess_fence(void* p) {
   __asm__ volatile ("movq (%0), %%rax\n; lfence;" : : "c" (p) : "rax");
 }
