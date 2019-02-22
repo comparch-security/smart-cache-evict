@@ -24,7 +24,7 @@ $(OBJECTS): %.o:%.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(TARGETS): run/% : test/%.cpp $(OBJECTS)
-	$(CXX) $(CXXFLAGS) $^ -o $@
+	$(CXX) $(CXXFLAGS) $^ -lpthread -o $@
 
 clean:
 	-rm $(TARGETS) $(OBJECTS)

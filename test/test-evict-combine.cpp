@@ -6,6 +6,7 @@
 int main() {
   init_cfg();
   randomize_seed();
+  init_threads();
   int way = 32;
   int succ = 0, iter = 0, keep = 0;
   int csize = 50000;
@@ -18,7 +19,7 @@ int main() {
     int m_way = way;
     if(rv) {
       way = trim_tar_final(&candidate, victim);
-      rv = test_tar(candidate, victim);
+      rv = test_tar_pthread(candidate, victim);
       printf("verify result %d\n", rv);
     }
     free_list(candidate);

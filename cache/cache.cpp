@@ -4,6 +4,9 @@
 
 #include <cassert>
 #include <cstdio>
+#include <thread>
+#include <atomic>
+#include <mutex>
 
 //#define SCE_CACHE_CALIBRATE_HISTO
 
@@ -122,6 +125,90 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
       maccess_fence((char *)victim + 2*CFG.elem_size);
 
 	uint64_t delay = rdtscfence();
+	maccess_fence (victim);
+	delay = rdtscfence() - delay;
+    //printf("%ld ", delay);
+    if(delay < CFG.flush_high) {
+      latency += (float)(delay);
+      i++;
+    }
+    t++;
+  }
+
+  //printf("\n");
+
+  if(i == CFG.trials) {
+    latency /= i;
+    return latency > (float)CFG.flush_low;
+  } else {
+    return false;
+  }
+}
+
+#define NTD 4
+std::atomic<elem_t *> thread_target;
+std::atomic<int> tasks;
+std::atomic<int> done;
+std::mutex mtx;
+
+void traverse_thread() {
+  bool has_work = false;
+  std::unique_lock<std::mutex> lck (mtx,std::defer_lock);
+  while(true) {
+    lck.lock();
+    if(tasks > 0) { tasks--; has_work = true;}
+    else has_work = false;
+    lck.unlock();
+
+    if(has_work){
+      traverse_list_1(thread_target);
+      done++;
+    }
+  }
+}
+
+void init_threads() {
+  tasks = 0;
+  done = 0;
+  thread_target = NULL;
+  for(int i=0; i<CFG.scans; i++) {
+    std::thread t(traverse_thread);
+    t.detach();
+  }
+}
+
+bool test_tar_pthread(elem_t *ptr, elem_t *victim) {
+  float latency = 0.0;
+  int i=0, t=0;
+
+  while(i<CFG.trials && t<CFG.trials*16) {
+
+	uint64_t delay;
+
+    do {
+      thread_target = victim;
+      tasks = CFG.scans;
+      while(tasks != 0 && done != CFG.scans) {
+        int t = tasks, d = done;
+        maccess (victim);
+        maccess (victim);
+        maccess (victim);
+        maccess_fence (victim);
+      }
+      done = 0;
+      delay = rdtscfence();
+      maccess_fence (victim);
+      delay = rdtscfence() - delay;
+    } while(delay < CFG.flush_low);
+
+    thread_target = ptr;
+    tasks = CFG.scans;
+    while(tasks != 0 && done != CFG.scans) {
+      thread_target = ptr;
+    }
+    done = 0;
+
+    delay = rdtscfence();
 	maccess_fence (victim);
 	delay = rdtscfence() - delay;
     //printf("%ld ", delay);

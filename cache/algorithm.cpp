@@ -22,7 +22,7 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
     int step = ltsz > way ? ltsz / way : 1;
     iter++;
     stack[stack_write] = pick_from_list(candidate, step);
-    if(test_tar(*candidate, victim)) {
+    if(test_tar_pthread(*candidate, victim)) {
       ltsz -= step;
       stack_write = (stack_write + 1) % CFG.rblimit;
       level++;
@@ -31,7 +31,7 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
         stack_read = (stack_read + 1) % CFG.rblimit;
       }
       if(ltsz < ltsz_min) {
-        //printf("%d (%d,%d,%d) %d\n", ltsz, level, iter, level-rblevel-1, retry);
+        printf("%d (%d,%d,%d) %d\n", ltsz, level, iter, level-rblevel-1, retry);
         //max_iter += level*4;
         rblevel = level;
         iter = 0;
@@ -172,7 +172,7 @@ bool trim_tar_combined_ran(elem_t **candidate, elem_t *victim, int &way, int csi
       if(*candidate == NULL) *candidate = allocate_list(m_csize);
       if(!test_tar(*candidate, victim)) {
         free_list(*candidate);
-        m_csize *= 1.01;
+        m_csize *= 1.00;
         printf("csize: %d\n", m_csize);
         *candidate = NULL;
       }
@@ -198,7 +198,7 @@ int trim_tar_final(elem_t **candidate, elem_t *victim) {
     pick = pick_from_list(candidate, 1);
     //assert((*candidate)->ltsz == list_size(*candidate));
     //assert((*candidate)->ltsz == ltsz - 1);
-    if(test_tar(*candidate, victim)) {
+    if(test_tar_pthread(*candidate, victim)) {
       ltsz--;
       if(stack) free_list(stack);
       stack = pick;
