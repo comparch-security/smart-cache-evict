@@ -88,7 +88,7 @@ void calibrate(elem_t *victim) {
   assert(flushed > unflushed);
   CFG.flush_low = (int)((2.0*flushed + 1.5*unflushed) / 3.5);
   CFG.flush_high  = (int)(flushed * 1.5);
-  printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
+  //printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
 
 #ifdef SCE_CACHE_CALIBRATE_HISTO
   {
@@ -145,10 +145,11 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
   }
 }
 
-#define NTD 4
+#define NTD 7
 std::atomic<elem_t *> thread_target;
 std::atomic<int> tasks;
 std::atomic<int> done;
+std::atomic<bool> verify;
 std::mutex mtx;
 
 void traverse_thread() {
@@ -161,7 +162,10 @@ void traverse_thread() {
     lck.unlock();
 
     if(has_work){
-      traverse_list_1(thread_target);
+      if(verify)
+        traverse_list_rr(thread_target);
+      else
+        traverse_list_1(thread_target);
       done++;
     }
   }
@@ -177,14 +181,14 @@ void init_threads() {
   }
 }
 
-bool test_tar_pthread(elem_t *ptr, elem_t *victim) {
+bool test_tar_pthread(elem_t *ptr, elem_t *victim, bool v) {
   float latency = 0.0;
   int i=0, t=0;
 
+  verify = v;
   while(i<CFG.trials && t<CFG.trials*16) {
 
 	uint64_t delay;
-
     do {
       thread_target = victim;
       tasks = CFG.scans;
@@ -199,11 +203,12 @@ bool test_tar_pthread(elem_t *ptr, elem_t *victim) {
       delay = rdtscfence();
       maccess_fence (victim);
       delay = rdtscfence() - delay;
-    } while(delay < CFG.flush_low);
+    } while(delay > CFG.flush_low);
 
     thread_target = ptr;
-    tasks = CFG.scans;
-    while(tasks != 0 && done != CFG.scans) {
+    int ntasks = v ? 7 : CFG.scans;
+    tasks = ntasks;
+    while(tasks != 0 && done != ntasks) {
       thread_target = ptr;
     }
     done = 0;

@@ -35,15 +35,15 @@ void init_cfg() {
   CFG_SET_ENTRY("scans",            CFG.scans,            3               )
   CFG_SET_ENTRY("calibrate_repeat", CFG.calibrate_repeat, 1000            )
   CFG_SET_ENTRY("retry",            CFG.retry,            true            )
-  CFG_SET_ENTRY("rtlimit",          CFG.rtlimit,          128             )
+  CFG_SET_ENTRY("rtlimit",          CFG.rtlimit,          64              )
   CFG_SET_ENTRY("rollback",         CFG.rollback,         true            )
-  CFG_SET_ENTRY("rblimit",          CFG.rblimit,          64              )
+  CFG_SET_ENTRY("rblimit",          CFG.rblimit,          16              )
   CFG_SET_ENTRY("ignoreslice",      CFG.ignoreslice,      true            )
   CFG_SET_ENTRY("findallcolors",    CFG.findallcolors,    false           )
   CFG_SET_ENTRY("findallcongruent", CFG.findallcongruent, false           )
   CFG_SET_ENTRY("verify",           CFG.verify,           true            )
   CFG_SET_ENTRY("pool_size",        CFG.pool_size,        (1<<22)         )
-  CFG_SET_ENTRY("elem_size",        CFG.elem_size,        SZ_CL*2         )
+  CFG_SET_ENTRY("elem_size",        CFG.elem_size,        SZ_CL           )
 
   if(db.count("traverse")) {
     int t = db["traverse"];

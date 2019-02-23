@@ -9,7 +9,7 @@ int main() {
   init_threads();
   int way = 32;
   int succ = 0, iter = 0, keep = 0;
-  int csize = 50000;
+  int csize = 90000;
   int way_pre = way;
   while (keep < 5 && iter < 200) {
     elem_t *victim = allocate_list(1);
@@ -19,7 +19,7 @@ int main() {
     int m_way = way;
     if(rv) {
       way = trim_tar_final(&candidate, victim);
-      rv = test_tar_pthread(candidate, victim);
+      rv = test_tar_pthread(candidate, victim, true);
       printf("verify result %d\n", rv);
     }
     free_list(candidate);
@@ -31,7 +31,7 @@ int main() {
       else if(keep > 0)
         keep--;
       else if(way <= way_pre)
-        way_pre--;
+        way_pre = (way + way_pre) / 2;
       else
         way_pre++;
     }
