@@ -167,17 +167,17 @@ bool trim_tar_combined_ran(elem_t **candidate, elem_t *victim, int &way, int csi
     //       CFG.pool->ltsz,
     //       residue == NULL ? 0 : residue->ltsz,
     //       *candidate == NULL ? 0 : (*candidate)->ltsz);
-    int m_csize = csize;
     if(*candidate == NULL) {
+      printf("find candidate set");
       do {
-        *candidate = allocate_list(m_csize);
+        *candidate = allocate_list(csize);
         if(!test_tar_pthread(*candidate, victim, false)) {
           free_list(*candidate);
-          m_csize *= 1.00;
-          printf("csize: %d\n", m_csize);
+          printf(".");
           *candidate = NULL;
         }
       } while(*candidate == NULL);
+      printf("\n");
     }
     rv = trim_tar_ran(candidate, victim, way);
     if(!rv) {
@@ -215,7 +215,7 @@ int trim_tar_final(elem_t **candidate, elem_t *victim) {
       if(CFG.retry && retry < CFG.rtlimit)
         retry++;
       else {
-        printf("finished with ltsz = %d\n", ltsz);
+        //printf("finished with ltsz = %d\n", ltsz);
         //print_list(*candidate);
         break;
       }

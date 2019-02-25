@@ -20,7 +20,7 @@ int main() {
     if(rv) {
       way = trim_tar_final(&candidate, victim);
       rv = test_tar_pthread(candidate, victim, true);
-      printf("verify result %d\n", rv);
+      printf("verify result %d way = %d\n", rv, way);
     }
     free_list(candidate);
     free_list(victim);

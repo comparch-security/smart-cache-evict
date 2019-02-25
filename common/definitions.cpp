@@ -42,7 +42,7 @@ void init_cfg() {
   CFG_SET_ENTRY("findallcolors",    CFG.findallcolors,    false           )
   CFG_SET_ENTRY("findallcongruent", CFG.findallcongruent, false           )
   CFG_SET_ENTRY("verify",           CFG.verify,           true            )
-  CFG_SET_ENTRY("pool_size",        CFG.pool_size,        (1<<22)         )
+  CFG_SET_ENTRY("pool_size",        CFG.pool_size,        (1<<18)         )
   CFG_SET_ENTRY("elem_size",        CFG.elem_size,        SZ_CL           )
 
   if(db.count("traverse")) {

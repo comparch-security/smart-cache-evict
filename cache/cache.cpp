@@ -163,7 +163,7 @@ void traverse_thread() {
 
     if(has_work){
       if(verify)
-        traverse_list_rr(thread_target);
+        traverse_list_ran(thread_target);
       else
         traverse_list_1(thread_target);
       done++;
@@ -203,11 +203,11 @@ bool test_tar_pthread(elem_t *ptr, elem_t *victim, bool v) {
       delay = rdtscfence();
       maccess_fence (victim);
       delay = rdtscfence() - delay;
-    } while(delay > CFG.flush_low);
+    } while(delay > CFG.flush_low / 2);
 
     thread_target = ptr;
-    int ntasks = v ? 7 : CFG.scans;
-    tasks = ntasks;
+    int ntasks = CFG.scans;
+    tasks = v ? 7 : ntasks;
     while(tasks != 0 && done != ntasks) {
       thread_target = ptr;
     }
