@@ -80,6 +80,25 @@ void traverse_list_rr(elem_t *ptr) {
   }
 }
 
+void traverse_list_ran(elem_t *ptr) {
+  const int vs = 16;
+  elem_t *vec[vs] = {NULL};
+  uint64_t time, delay;
+  while(ptr) {
+    vec[random_fast() % vs] = ptr;
+    ptr = ptr->next;
+    for(int i=0; i<vs; i++) {
+      if(vec[i]) {
+        do {
+          time = rdtscfence();
+          maccess_fence (vec[i]);
+          delay = rdtscfence() - time;
+        } while (delay > CFG.flush_low);
+      }
+    }
+  }
+}
+
 void traverse_list_param(elem_t *ptr, int repeat, int dis, int step) {
   int c=0, d=0, i=0;
   elem_t *start = ptr, *next = NULL;

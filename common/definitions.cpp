@@ -32,18 +32,18 @@ void init_cfg() {
   CFG_SET_ENTRY("flush_low",        CFG.flush_low,        0               )
   CFG_SET_ENTRY("flush_high",       CFG.flush_high,       0               )
   CFG_SET_ENTRY("trials",           CFG.trials,           4               )
-  CFG_SET_ENTRY("scans",            CFG.scans,            4               )
+  CFG_SET_ENTRY("scans",            CFG.scans,            3               )
   CFG_SET_ENTRY("calibrate_repeat", CFG.calibrate_repeat, 1000            )
   CFG_SET_ENTRY("retry",            CFG.retry,            true            )
-  CFG_SET_ENTRY("rtlimit",          CFG.rtlimit,          128             )
+  CFG_SET_ENTRY("rtlimit",          CFG.rtlimit,          64              )
   CFG_SET_ENTRY("rollback",         CFG.rollback,         true            )
-  CFG_SET_ENTRY("rblimit",          CFG.rblimit,          64              )
+  CFG_SET_ENTRY("rblimit",          CFG.rblimit,          16              )
   CFG_SET_ENTRY("ignoreslice",      CFG.ignoreslice,      true            )
   CFG_SET_ENTRY("findallcolors",    CFG.findallcolors,    false           )
   CFG_SET_ENTRY("findallcongruent", CFG.findallcongruent, false           )
   CFG_SET_ENTRY("verify",           CFG.verify,           true            )
   CFG_SET_ENTRY("pool_size",        CFG.pool_size,        (1<<18)         )
-  CFG_SET_ENTRY("elem_size",        CFG.elem_size,        SZ_PG           )
+  CFG_SET_ENTRY("elem_size",        CFG.elem_size,        SZ_CL           )
 
   if(db.count("traverse")) {
     int t = db["traverse"];
