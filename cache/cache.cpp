@@ -1,49 +1,27 @@
 #include "cache/cache.hpp"
 #include "cache/list.hpp"
-#include "util/assembly.hpp"
 
-#include <cassert>
 #include <cstdio>
+#include <cstdint>
 #include <thread>
 #include <atomic>
 #include <mutex>
 
-//#define SCE_CACHE_CALIBRATE_HISTO
-
-#ifdef SCE_CACHE_CALIBRATE_HISTO
-  #include "util/statistics.hpp"
-  #include <iomanip>
-  #include <fstream>
-#endif
-
 void calibrate(elem_t *victim) {
   float unflushed = 0.0;
   float flushed = 0.0;
-
-#ifdef SCE_CACHE_CALIBRATE_HISTO
-  uint32_t stat_histo_unflushed = init_histo_stat(20, CFG.calibrate_repeat);
-  uint32_t stat_histo_flushed = init_histo_stat(40, CFG.calibrate_repeat);
-#endif
-  
-  maccess (victim);
-  maccess (victim);
-  maccess (victim);
-  maccess_fence (victim);
+  uint64_t delta;
 
   for (int i=0; i<CFG.calibrate_repeat; i++) {
     maccess (victim);
     maccess (victim);
     maccess (victim);
-    maccess (victim);
-
-    uint64_t time = rdtscfence();
     maccess_fence (victim);
-    uint64_t delta = rdtscfence() - time;
-    unflushed += delta;
 
-#ifdef SCE_CACHE_CALIBRATE_HISTO
-    record_histo_stat(stat_histo_unflushed, (float)(delta));
-#endif
+    delta = rdtscfence();
+    maccess_fence (victim);
+    delta = rdtscfence() - delta;
+    unflushed += delta;
   }
   unflushed /= CFG.calibrate_repeat;
 
@@ -54,77 +32,40 @@ void calibrate(elem_t *victim) {
     maccess_fence (victim);
 
     flush (victim);
-    uint64_t time = rdtscfence();
+    delta = rdtscfence();
     maccess_fence (victim);
-    uint64_t delta = rdtscfence() - time;
+    delta = rdtscfence() - delta;
     flushed += delta;
 
-#ifdef SCE_CACHE_CALIBRATE_HISTO
-    record_histo_stat(stat_histo_flushed, (float)(delta));
-#endif
   }
   flushed /= CFG.calibrate_repeat;
 
-#ifdef SCE_CACHE_CALIBRATE_HISTO
-  {
-    std::ofstream outfile("unflushed.data", std::ofstream::app);
-    auto hist = get_histo_density(stat_histo_unflushed);
-    outfile << "=================" << std::endl;
-    for(int i=0; i<hist.size(); i++)
-      outfile << hist[i].first << "\t0\t0\t" << hist[i].second << "\t0" << std::endl;
-    outfile.close();
-  }
-
-  {
-    std::ofstream outfile("flushed.data", std::ofstream::app);
-    auto hist = get_histo_density(stat_histo_flushed);
-    outfile << "=================" << std::endl;
-    for(int i=0; i<hist.size(); i++)
-      outfile << hist[i].first << "\t0\t0\t" << hist[i].second << "\t0" << std::endl;
-    outfile.close();
-  }
-#endif
-
-  assert(flushed > unflushed);
   CFG.flush_low = (int)((2.0*flushed + 1.5*unflushed) / 3.5);
   CFG.flush_high  = (int)(flushed * 1.5);
   //printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
-
-#ifdef SCE_CACHE_CALIBRATE_HISTO
-  {
-    std::ofstream outfile("flushed.data", std::ofstream::app);
-    outfile << "[" << CFG.flush_low <<"," << CFG.flush_high << "]" << std::endl;
-    outfile.close();
-  }
-#endif
-
 }
 
 bool test_tar(elem_t *ptr, elem_t *victim) {
   float latency = 0.0;
   int i=0, t=0;
+  uint64_t delay;
 
   while(i<CFG.trials && t<CFG.trials*16) {
-	//maccess_write (&(victim->next), i);
-	//maccess_fence (victim);
-	//maccess_write (&(victim->next), NULL);
 	maccess (victim);
     maccess (victim);
 	maccess (victim);
     maccess_fence (victim);
 
 	for(int j=0; j<CFG.scans; j++) {
+      traverse_list(ptr, 2, 4);
+      //traverse_list_rr(ptr, 4);
+      //traverse_list_ran(ptr, 4);
       //traverse_list_param(ptr, 2, 2, 1);
-      traverse_list_rr(ptr);
     }
 
-    if((char *)victim > CFG.pool_root + 2*CFG.elem_size)
-      maccess_fence((char *)victim - 2*CFG.elem_size );
+    maccess_fence((char *)((uint64_t)(victim) ^ 0x00000100ull));
 
-    if((char *)victim < CFG.pool_roof - 2*CFG.elem_size)
-      maccess_fence((char *)victim + 2*CFG.elem_size);
-
-	uint64_t delay = rdtscfence();
+	delay = rdtscfence();
 	maccess_fence (victim);
 	delay = rdtscfence() - delay;
     //printf("%ld ", delay);
@@ -149,24 +90,29 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
 std::atomic<elem_t *> thread_target;
 std::atomic<int> tasks;
 std::atomic<int> done;
-std::atomic<bool> verify;
-std::mutex mtx;
+std::mutex mtx_task, mtx_done;
 
 void traverse_thread() {
   bool has_work = false;
-  std::unique_lock<std::mutex> lck (mtx,std::defer_lock);
+  std::unique_lock<std::mutex> lck_task (mtx_task,std::defer_lock);
+  std::unique_lock<std::mutex> lck_done (mtx_done,std::defer_lock);
   while(true) {
-    lck.lock();
+    lck_task.lock();
     if(tasks > 0) { tasks--; has_work = true;}
     else has_work = false;
-    lck.unlock();
+    lck_task.unlock();
 
+    elem_t *ptr = thread_target;
     if(has_work){
-      if(verify)
-        traverse_list_ran(thread_target);
-      else
-        traverse_list_1(thread_target);
+      //printf("%016lx: thread begin (%016lx)\n", &has_work, ptr);
+      traverse_list(thread_target, 2, 4);
+      //traverse_list_rr(thread_target, 4);
+      //traverse_list_ran(thread_target, 4);
+      //traverse_list_param(thread_target, 2, 2, 1);
+      lck_done.lock();
       done++;
+      lck_done.unlock();
+      //printf("%016lx: thread done (%016lx)\n", &has_work, ptr);
     }
   }
 }
@@ -181,49 +127,66 @@ void init_threads() {
   }
 }
 
-bool test_tar_pthread(elem_t *ptr, elem_t *victim, bool v) {
+bool test_tar_pthread(elem_t *ptr, elem_t *victim) {
   float latency = 0.0;
   int i=0, t=0;
-
-  verify = v;
+  uint64_t delay;
+  elem_t *victim_neighbour = (elem_t *)((uint64_t)(victim) ^ 0x00000100ull);
+  
   while(i<CFG.trials && t<CFG.trials*16) {
-
-	uint64_t delay;
     do {
       thread_target = victim;
       tasks = CFG.scans;
-      while(tasks != 0 && done != CFG.scans) {
-        int t = tasks, d = done;
+      done = 0;
+      do {
         maccess (victim);
         maccess (victim);
         maccess (victim);
         maccess_fence (victim);
-      }
-      done = 0;
+      } while(tasks != 0 || done != CFG.scans);
       delay = rdtscfence();
       maccess_fence (victim);
       delay = rdtscfence() - delay;
-    } while(delay > CFG.flush_low / 2);
+    } while(delay > CFG.flush_low);
 
     thread_target = ptr;
-    int ntasks = CFG.scans;
-    tasks = v ? 7 : ntasks;
-    while(tasks != 0 && done != ntasks) {
-      thread_target = ptr;
-    }
+    tasks = CFG.scans;
     done = 0;
+    while(tasks != 0 || done != CFG.scans);
+
+    do {
+      thread_target = victim_neighbour;
+      tasks = CFG.scans;
+      done = 0;
+      do {
+        maccess (victim_neighbour);
+        maccess (victim_neighbour);
+        maccess (victim_neighbour);
+        maccess_fence (victim_neighbour);
+      } while(tasks != 0 || done != CFG.scans);
+      delay = rdtscfence();
+      maccess_fence (victim_neighbour);
+      delay = rdtscfence() - delay;
+    } while(delay > CFG.flush_low);
+
+    /*
+    do {
+      delay = rdtscfence();
+      maccess_fence((char *)((uint64_t)(victim) ^ 0x00000100ull));
+      delay = rdtscfence() - delay;
+    } while (delay > CFG.flush_low);
+    */
 
     delay = rdtscfence();
 	maccess_fence (victim);
 	delay = rdtscfence() - delay;
-    //printf("%ld ", delay);
+    //printf("%ld ", delay); fflush(stdout);
     if(delay < CFG.flush_high) {
       latency += (float)(delay);
       i++;
     }
     t++;
   }
-
   //printf("\n");
 
   if(i == CFG.trials) {
@@ -246,13 +209,14 @@ bool test_tar_lists(std::vector<elem_t *> &lists, elem_t *victim, int skip) {
 
 	for(int j=0; j<CFG.scans; j++)
       for(int k=0; k<lists.size(); k++)
-        if(k!=skip) CFG.traverse(lists[k]);
+        if(k!=skip) {
+          traverse_list(lists[k], 2, 4);
+          //traverse_list_rr(lists[k], 4);
+          //traverse_list_ran(lists[k], 4);
+          //traverse_list_param(lists[k], 2, 2, 1);
+        }
 
-    if((char *)victim > CFG.pool_root + 2*CFG.elem_size)
-      maccess_fence((char *)victim - 2*CFG.elem_size );
-
-    if((char *)victim < CFG.pool_roof - 2*CFG.elem_size)
-      maccess_fence((char *)victim + 2*CFG.elem_size);
+    maccess_fence((char *)((uint64_t)(victim) ^ 0x00000100ull));
 
 	uint64_t delay = rdtscfence();
 	maccess_fence (victim);
@@ -272,32 +236,19 @@ bool test_tar_lists(std::vector<elem_t *> &lists, elem_t *victim, int skip) {
   }
 }
 
-bool test_arb(elem_t *ptr) {
-  int count = 0;
-  for(int i=0; i<CFG.trials; i++) {
-	for(int j=0; j<CFG.scans; j++)
-      CFG.traverse(ptr);
-
-    elem_t *p = ptr;
-    while(p) {
-      uint64_t time = rdtscfence();
-      maccess_fence(p);
-      if(rdtscfence() - time > CFG.flush_low)
-        count++;
-      p = p->next;
-    }
-  }
-  return count / CFG.trials  > CFG.cache_way;
-}
-
 float evict_rate(int ltsz, int trial) {
   float rate = 0.0;
   for(int i=0; i<trial; i++) {
     elem_t *ev_list = allocate_list(ltsz);
-    calibrate(ev_list);
-    bool res = test_tar(ev_list->next, ev_list);
-    if(res) rate += 1.0;
+    elem_t *victim = allocate_list(1);
+    calibrate(victim);
+    bool res = test_tar_pthread(ev_list, victim);
+    if(res && test_tar_pthread(ev_list, victim))
+      rate += 1.0;
     free_list(ev_list);
+    free_list(victim);
+    printf("."); fflush(stdout);
   }
+  printf("\n"); fflush(stdout);
   return rate / trial;
 }

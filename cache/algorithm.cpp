@@ -16,13 +16,13 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
   int retry = 0;
   int ltsz = (*candidate)->ltsz;
   int ltsz_min = ltsz;
-  int iter = 0, max_iter = ltsz > 50000 ? 500 : (ltsz > 10000 ? 2000 : (ltsz > 1000 ? 20000 : 200000));
+  int iter = 0, max_iter = 2000;
   int level = 0, rblevel = 0;
   while(ltsz > 4) {
     int step = ltsz > way ? ltsz / way : 1;
     iter++;
     stack[stack_write] = pick_from_list(candidate, step);
-    if(test_tar_pthread(*candidate, victim, false)) {
+    if(test_tar_pthread(*candidate, victim)) {
       ltsz -= step;
       stack_write = (stack_write + 1) % CFG.rblimit;
       level++;
@@ -31,7 +31,8 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
         stack_read = (stack_read + 1) % CFG.rblimit;
       }
       if(ltsz < ltsz_min) {
-        //printf("%d (%d,%d,%d) %d\n", ltsz, level, iter, level-rblevel-1, retry);
+        max_iter = ltsz > 50000 ? 2000 : (ltsz > 10000 ? 20000 : (ltsz > 1000 ? 100000 : 400000));
+        printf("%d (%d,%d,%d) %d\n", ltsz, level, iter, level-rblevel-1, retry);
         //max_iter += level*4;
         rblevel = level;
         iter = 0;
@@ -171,9 +172,9 @@ bool trim_tar_combined_ran(elem_t **candidate, elem_t *victim, int &way, int csi
       printf("find candidate set");
       do {
         *candidate = allocate_list(csize);
-        if(!test_tar_pthread(*candidate, victim, false)) {
+        if(!test_tar_pthread(*candidate, victim)) {
           free_list(*candidate);
-          printf(".");
+          printf(".");fflush(stdout);
           *candidate = NULL;
         }
       } while(*candidate == NULL);
@@ -201,17 +202,13 @@ int trim_tar_final(elem_t **candidate, elem_t *victim) {
   int ltsz = (*candidate)->ltsz;
   while(true) {
     pick = pick_from_list(candidate, 1);
-    //assert((*candidate)->ltsz == list_size(*candidate));
-    //assert((*candidate)->ltsz == ltsz - 1);
-    if(test_tar_pthread(*candidate, victim, true)) {
+    if(test_tar_pthread(*candidate, victim)) {
       ltsz--;
       if(stack) free_list(stack);
       stack = pick;
       retry = 0;
     } else {
       *candidate = append_list(*candidate, pick);
-      //assert((*candidate)->ltsz == ltsz);
-      //assert((*candidate)->ltsz == list_size(*candidate));
       if(CFG.retry && retry < CFG.rtlimit)
         retry++;
       else {

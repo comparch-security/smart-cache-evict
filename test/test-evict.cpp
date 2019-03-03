@@ -1,6 +1,6 @@
 #include "cache/cache.hpp"
 #include "cache/algorithm.hpp"
-#include "util/random.hpp"
+#include "cache/list.hpp"
 #include <cstdio>
 
 int main() {

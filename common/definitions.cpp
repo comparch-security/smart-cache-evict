@@ -37,21 +37,13 @@ void init_cfg() {
   CFG_SET_ENTRY("retry",            CFG.retry,            true            )
   CFG_SET_ENTRY("rtlimit",          CFG.rtlimit,          64              )
   CFG_SET_ENTRY("rollback",         CFG.rollback,         true            )
-  CFG_SET_ENTRY("rblimit",          CFG.rblimit,          16              )
+  CFG_SET_ENTRY("rblimit",          CFG.rblimit,          32              )
   CFG_SET_ENTRY("ignoreslice",      CFG.ignoreslice,      true            )
   CFG_SET_ENTRY("findallcolors",    CFG.findallcolors,    false           )
   CFG_SET_ENTRY("findallcongruent", CFG.findallcongruent, false           )
   CFG_SET_ENTRY("verify",           CFG.verify,           true            )
   CFG_SET_ENTRY("pool_size",        CFG.pool_size,        (1<<18)         )
-  CFG_SET_ENTRY("elem_size",        CFG.elem_size,        SZ_CL           )
-
-  if(db.count("traverse")) {
-    int t = db["traverse"];
-    CFG.traverse = choose_traverse_func(t);
-  } else {
-    CFG.traverse = traverse_list_4;
-    db["traverse"] = 4;
-  }
+  CFG_SET_ENTRY("elem_size",        CFG.elem_size,        SZ_PG           )
 
   if(!db_init) free(CFG.pool_root);
   //CFG.pool_root = (char *)malloc(CFG.pool_size * CFG.elem_size);
@@ -88,12 +80,4 @@ void dump_cfg() {
     db_file << db.dump(4);
     db_file.close();
   }
-}
-
-elem_t *allocate_list(int ltsz) {
-  return pick_from_list(&CFG.pool, ltsz);
-}
-
-void free_list(elem_t *l) {
-  CFG.pool = append_list(CFG.pool, l);
 }

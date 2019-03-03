@@ -29,7 +29,6 @@ struct config {
   bool findallcolors;
   bool findallcongruent;
   bool verify;
-  void (*traverse)(elem_t *);       // list traver function
   int pool_size;                    // the size of the element pool
   int elem_size;                    // size of an element
   char *pool_root;                  // base memory address of the pool

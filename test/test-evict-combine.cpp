@@ -1,6 +1,6 @@
 #include "cache/cache.hpp"
 #include "cache/algorithm.hpp"
-#include "util/random.hpp"
+#include "cache/list.hpp"
 #include <cstdio>
 
 int main() {
@@ -9,17 +9,17 @@ int main() {
   init_threads();
   int way = 32;
   int succ = 0, iter = 0, keep = 0;
-  int csize = 90000;
+  int csize = 120000;
   int way_pre = way;
   while (keep < 5 && iter < 200) {
     elem_t *victim = allocate_list(1);
     elem_t *candidate = NULL;
     calibrate(victim);
-    bool rv = trim_tar_combined_ran(&candidate, victim, way, csize, 600, 11);
+    bool rv = trim_tar_combined_ran(&candidate, victim, way, csize, 600, 21);
     int m_way = way;
     if(rv) {
       way = trim_tar_final(&candidate, victim);
-      rv = test_tar_pthread(candidate, victim, true);
+      rv = test_tar_pthread(candidate, victim);
       printf("verify result %d way = %d\n", rv, way);
     }
     free_list(candidate);

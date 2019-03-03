@@ -9,12 +9,9 @@ TARGETS = \
 	run/test-evict-combine \
 
 OBJECTS = \
-	cache/list.o \
 	cache/cache.o \
 	cache/algorithm.o \
 	common/definitions.o \
-	util/random.o \
-	util/statistics.o \
 
 HEADERS = $(wildcard cache/*.hpp) $(wildcard database/*.hpp) $(wildcard util/*.hpp)
 
