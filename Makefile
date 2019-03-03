@@ -1,7 +1,7 @@
 
 MAKE = make
 CXX = g++
-CXXFLAGS = --std=c++11 -O3 -I.
+CXXFLAGS = --std=c++11 -O3 -I. -fdata-sections -ffunction-sections
 
 TARGETS = \
 	run/test-evict-ratio \
@@ -21,7 +21,7 @@ $(OBJECTS): %.o:%.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(TARGETS): run/% : test/%.cpp $(OBJECTS)
-	$(CXX) $(CXXFLAGS) $^ -lpthread -o $@
+	$(CXX) $(CXXFLAGS) $^ -Wl,--gc-sections -lpthread -o $@
 
 clean:
 	-rm $(TARGETS) $(OBJECTS)

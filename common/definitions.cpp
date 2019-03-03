@@ -27,10 +27,10 @@ void init_cfg() {
 
   CFG_SET_ENTRY("candidate_size",   CFG.candidate_size,   0               )
   CFG_SET_ENTRY("cache_size",       CFG.cache_size,       0               )
-  CFG_SET_ENTRY("cache_way",        CFG.cache_way,        0               )
+  CFG_SET_ENTRY("cache_way",        CFG.cache_way,        16              )
   CFG_SET_ENTRY("cache_slices",     CFG.cache_slices,     0               )
-  CFG_SET_ENTRY("flush_low",        CFG.flush_low,        0               )
-  CFG_SET_ENTRY("flush_high",       CFG.flush_high,       0               )
+  CFG_SET_ENTRY("flush_low",        CFG.flush_low,        160             )
+  CFG_SET_ENTRY("flush_high",       CFG.flush_high,       400             )
   CFG_SET_ENTRY("trials",           CFG.trials,           4               )
   CFG_SET_ENTRY("scans",            CFG.scans,            3               )
   CFG_SET_ENTRY("calibrate_repeat", CFG.calibrate_repeat, 1000            )

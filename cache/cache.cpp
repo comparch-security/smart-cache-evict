@@ -6,6 +6,7 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <cassert>
 
 void calibrate(elem_t *victim) {
   float unflushed = 0.0;
@@ -42,7 +43,7 @@ void calibrate(elem_t *victim) {
 
   CFG.flush_low = (int)((2.0*flushed + 1.5*unflushed) / 3.5);
   CFG.flush_high  = (int)(flushed * 1.5);
-  //printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
+  printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
 }
 
 bool test_tar(elem_t *ptr, elem_t *victim) {
@@ -58,7 +59,7 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
 
 	for(int j=0; j<CFG.scans; j++) {
       traverse_list(ptr, 2, 4);
-      //traverse_list_rr(ptr, 4);
+      //traverse_list_rr(ptr, 1);
       //traverse_list_ran(ptr, 4);
       //traverse_list_param(ptr, 2, 2, 1);
     }
@@ -98,17 +99,19 @@ void traverse_thread() {
   std::unique_lock<std::mutex> lck_done (mtx_done,std::defer_lock);
   while(true) {
     lck_task.lock();
-    if(tasks > 0) { tasks--; has_work = true;}
-    else has_work = false;
+    if(tasks > 0) {
+      tasks--;
+      has_work = true;
+    } else has_work = false;
     lck_task.unlock();
 
     elem_t *ptr = thread_target;
     if(has_work){
       //printf("%016lx: thread begin (%016lx)\n", &has_work, ptr);
-      traverse_list(thread_target, 2, 4);
+      //traverse_list(thread_target, 2, 4);
       //traverse_list_rr(thread_target, 4);
-      //traverse_list_ran(thread_target, 4);
-      //traverse_list_param(thread_target, 2, 2, 1);
+      //traverse_list_ran(thread_target, 2);
+      traverse_list_param(thread_target, 2, 2, 1);
       lck_done.lock();
       done++;
       lck_done.unlock();
@@ -132,12 +135,15 @@ bool test_tar_pthread(elem_t *ptr, elem_t *victim) {
   int i=0, t=0;
   uint64_t delay;
   elem_t *victim_neighbour = (elem_t *)((uint64_t)(victim) ^ 0x00000100ull);
+  std::unique_lock<std::mutex> lck_task (mtx_task,std::defer_lock);
   
   while(i<CFG.trials && t<CFG.trials*16) {
     do {
       thread_target = victim;
-      tasks = CFG.scans;
       done = 0;
+      lck_task.lock();
+      tasks = CFG.scans;
+      lck_task.unlock();
       do {
         maccess (victim);
         maccess (victim);
@@ -150,14 +156,20 @@ bool test_tar_pthread(elem_t *ptr, elem_t *victim) {
     } while(delay > CFG.flush_low);
 
     thread_target = ptr;
-    tasks = CFG.scans;
+    assert(tasks == 0 && done == CFG.scans);
     done = 0;
+    lck_task.lock();
+    tasks = CFG.scans;
+    lck_task.unlock();
     while(tasks != 0 || done != CFG.scans);
 
     do {
       thread_target = victim_neighbour;
-      tasks = CFG.scans;
+      assert(tasks == 0 && done == CFG.scans);
       done = 0;
+      lck_task.lock();
+      tasks = CFG.scans;
+      lck_task.unlock();
       do {
         maccess (victim_neighbour);
         maccess (victim_neighbour);
