@@ -15,19 +15,17 @@ int main() {
   std::chrono::high_resolution_clock::time_point tb1, tb2, tend;
   long int time_all_acc = 0, time_trim_acc = 0;
   while (iter < 500) {
+    elem_t *victim = allocate_list(1);
+    calibrate(victim);
     tb1 = std::chrono::high_resolution_clock::now();
     elem_t *candidate = allocate_list(csize);
-    elem_t *victim = allocate_list(1);
-    //calibrate(victim);
     while(!test_tar(candidate, victim)) {
       free_list(candidate);
-      free_list(victim);
       candidate = allocate_list(csize);
-      victim = allocate_list(1);
-      //calibrate(victim);
     }
     tb2 = std::chrono::high_resolution_clock::now();
     bool rv = trim_tar_ran(&candidate, victim, way);
+    tend = std::chrono::high_resolution_clock::now();
     if(rv) {
       rv = test_tar_pthread(candidate, victim);
       //printf("verify result %d way = %d\n", rv, way);
@@ -36,7 +34,6 @@ int main() {
     free_list(victim);
     succ += rv;
     iter++;
-    tend = std::chrono::high_resolution_clock::now();
     long int time_all = std::chrono::duration_cast<std::chrono::milliseconds>(tend - tb1).count();
     time_all_acc += time_all; 
     long int time_trim = std::chrono::duration_cast<std::chrono::milliseconds>(tend - tb2).count();
