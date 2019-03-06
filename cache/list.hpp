@@ -108,23 +108,20 @@ inline void traverse_list_ran(elem_t *ptr, int dep) {
 }
 
 inline void traverse_list_param(elem_t *ptr, int repeat, int dis, int step) {
-  int c=0, d=0, i=0;
+  int c=0, d=0;
   elem_t *start = ptr, *next = NULL;
   do {
     ptr = start;
-    while(c<repeat) {
-      c++;
-      while(d<dis) {
-        if(d == step) next = ptr;
+    c = repeat;
+    while(c--) {
+      while(d++<dis) {
         if(ptr) { maccess(ptr); ptr = ptr->next; }
-        d++;
+        if(d == step) next = ptr;
       }
       d = 0;
       ptr = start;
     }
-    c = 0;
     start = next;
-    i += step;
   } while(start != NULL);
 }
 
