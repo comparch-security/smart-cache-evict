@@ -43,7 +43,7 @@ void calibrate(elem_t *victim) {
 
   CFG.flush_low = (int)((2.0*flushed + 1.5*unflushed) / 3.5);
   CFG.flush_high  = (int)(flushed * 1.5);
-  printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
+  //printf("calibrate: (%f, %f) -> [%d : %d]\n", flushed, unflushed, CFG.flush_high, CFG.flush_low);
 }
 
 bool test_tar(elem_t *ptr, elem_t *victim) {
@@ -87,7 +87,6 @@ bool test_tar(elem_t *ptr, elem_t *victim) {
   }
 }
 
-#define NTD 7
 std::atomic<elem_t *> thread_target;
 std::atomic<int> tasks;
 std::atomic<int> done;
@@ -259,8 +258,8 @@ float evict_rate(int ltsz, int trial) {
       rate += 1.0;
     free_list(ev_list);
     free_list(victim);
-    printf("."); fflush(stdout);
+    //printf("."); fflush(stdout);
   }
-  printf("\n"); fflush(stdout);
+  //printf("\n"); fflush(stdout);
   return rate / trial;
 }

@@ -19,7 +19,7 @@ int main() {
     calibrate(victim);
     tb1 = std::chrono::high_resolution_clock::now();
     elem_t *candidate = allocate_list(csize);
-    while(!test_tar(candidate, victim)) {
+    while(!test_tar_pthread(candidate, victim)) {
       free_list(candidate);
       candidate = allocate_list(csize);
     }

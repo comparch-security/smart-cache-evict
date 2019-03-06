@@ -69,10 +69,9 @@ inline void traverse_list(elem_t *ptr, int dep, int rep) {
       ptr = ptr->next;
     }
   }
-  while(ptr && ptr->next) {
+  while(ptr) {
     for(i=0; i<rep; i++) {
       maccess(ptr);
-      maccess(ptr->next);
     }
     ptr = ptr->next;
   }
