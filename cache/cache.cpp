@@ -163,30 +163,10 @@ bool test_tar_pthread(elem_t *ptr, elem_t *victim) {
     while(tasks != 0 || done != CFG.scans);
 
     do {
-      thread_target = victim_neighbour;
-      assert(tasks == 0 && done == CFG.scans);
-      done = 0;
-      lck_task.lock();
-      tasks = CFG.scans;
-      lck_task.unlock();
-      do {
-        maccess (victim_neighbour);
-        maccess (victim_neighbour);
-        maccess (victim_neighbour);
-        maccess_fence (victim_neighbour);
-      } while(tasks != 0 || done != CFG.scans);
       delay = rdtscfence();
-      maccess_fence (victim_neighbour);
-      delay = rdtscfence() - delay;
-    } while(delay > CFG.flush_low);
-
-    /*
-    do {
-      delay = rdtscfence();
-      maccess_fence((char *)((uint64_t)(victim) ^ 0x00000100ull));
+      maccess_fence(victim_neighbour);
       delay = rdtscfence() - delay;
     } while (delay > CFG.flush_low);
-    */
 
     delay = rdtscfence();
 	maccess_fence (victim);
