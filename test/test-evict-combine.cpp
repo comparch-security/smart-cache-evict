@@ -3,6 +3,7 @@
 #include "cache/list.hpp"
 #include <cstdio>
 #include <chrono>
+#include <fstream>
 
 int main() {
   init_cfg();
@@ -54,11 +55,17 @@ int main() {
     time_all_acc += time_all; 
     long int time_trim = std::chrono::duration_cast<std::chrono::milliseconds>(tend - tb2).count();
     time_trim_acc += time_trim;
-    printf("trials %d sucesses: %d result: %d (%ld, %ld)\n", iter, succ, rv, time_all, time_trim);
+    std::ofstream log("combine.log", std::ofstream::out | std::ofstream::app);
+    log << "trials " << iter << " sucesses: " << succ << " result: " << rv << " (" << time_all << ")" << std::endl;
+    //printf("trials %d sucesses: %d result: %d (%ld, %ld)\n", iter, succ, rv, time_all, time_trim);
+    log.close();
   }
   float ratio = (float)succ / iter;
   time_all_acc /= iter;
   time_trim_acc /= iter;
-  printf("sucess ratio: %f (%ld, %ld)\n", ratio, time_all_acc, time_trim_acc);
+  std::ofstream log("combine.log", std::ofstream::out | std::ofstream::app);
+  log << "sucess ratio: " << ratio << " (" << time_all_acc << ")" << std::endl;
+  //printf("sucess ratio: %f (%ld, %ld)\n", ratio, time_all_acc, time_trim_acc);
+  log.close();
   return 0;
 }
