@@ -48,11 +48,11 @@ bool trim_tar_ran(elem_t **candidate, elem_t *victim, int &way) {
       //} else
       if(CFG.retry && retry < CFG.rtlimit)
         retry++;
-      //else if(ltsz > way + 1 && CFG.rollback && stack_read != stack_write) {
+      //else if(stack_read != stack_write) {
       //  int max_rb = (stack_write < stack_read)
       //    ? stack_write + CFG.rblimit - stack_read
       //    : stack_write - stack_read;
-      //  for(int r=0; r < 1 + max_rb/8; r++) {
+      //  for(int r=0; r < 1; r++) {
       //    stack_write = (stack_write + CFG.rblimit - 1) % CFG.rblimit;
       //    level--;
       //    ltsz += stack[stack_write]->ltsz;
